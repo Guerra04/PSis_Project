@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include "msgs.h"
-#include "../../../../C_libs/linked_list.h"
+#include "linked_list.h"
 
 int sock_fd;
 struct sigaction *handler;
