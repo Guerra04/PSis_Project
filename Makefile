@@ -5,7 +5,7 @@ COMPFLAGS = gcc -Wall -c
 LINKFLAGS = gcc -o
 EXTRAFLAGS = -lpthread
 
-all: gateway peer client
+all: gateway peer client gallery.o
 
 gateway: gateway.o linked_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
@@ -19,12 +19,14 @@ peer: peer.o
 peer.o: peer.c msgs.h
 	$(COMPFLAGS) $<
 
-client: client.o
+client: client.o gallery.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-client.o: client.c msgs.h
+client.o: client.c msgs.h gallery.o
+	$(COMPFLAGS) $<
+
+gallery.o: gallery.c gallery.h
 	$(COMPFLAGS) $<
 
 clean:
 	rm -f gateway peer client *.o
-
