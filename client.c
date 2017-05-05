@@ -27,8 +27,9 @@ int main(int argc, char* argv[]){
 	int nbytes;
 	int err;*/
 
-
+/*****************Connection to Peer*********************/
 	sock_fd =  gallery_connect(KNOWN_IP, KNOWN_PORT_CLIENT);
+
 	switch(sock_fd){
 		case -1:
 		printf("[ABORTING] Gateway cannot be accessed\n");
@@ -41,9 +42,10 @@ int main(int argc, char* argv[]){
 		default:
 		printf("Connection to Peer successful\n");
 	}
-/*****************************SOCKET TCP*****************************/
-
+/*****************************Add Photos*****************************/
 	printf("---------------------------------------------------\n");
+
+	/*************Communication**************/
 	char *stream = malloc(sizeof(message_tcp));
 	message_tcp *msg = malloc(sizeof(message_tcp));
 	memset(msg->buffer, 0, MESSAGE_LEN);
@@ -58,6 +60,7 @@ int main(int argc, char* argv[]){
 		memcpy(stream, msg, sizeof(message_tcp));
 		send(sock_fd, msg, sizeof(message_tcp), 0);
 	}
+	/********Communication [END]*****************/
 	close(sock_fd);
 	exit(0);
 }

@@ -10,8 +10,11 @@ all: gateway peer client gallery.o
 gateway: gateway.o linked_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-gateway.o: gateway.c msgs.h linked_list.c
-	$(COMPFLAGS) $< linked_list.c
+gateway.o: gateway.c msgs.h linked_list.h
+	$(COMPFLAGS) $<
+
+linked_list.o: linked_list.c linked_list.h
+	$(COMPFLAGS) $<
 
 peer: peer.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)

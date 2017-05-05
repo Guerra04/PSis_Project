@@ -3,7 +3,7 @@
 
 int gallery_connect(char * host, uint32_t port);
 
-//uint32_t gallery_add_photo(int peer_socket, char *file_name);
+uint32_t gallery_add_photo(int peer_socket, char *file_name);
 
 //int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword);
 

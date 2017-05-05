@@ -73,3 +73,31 @@ int gallery_connect(char * host, uint32_t port){
 
 	return sock_fd;
 }
+
+
+uint32_t gallery_add_photo(int sock_peer, char *file){
+
+	char *stream = malloc(sizeof(message_tcp));
+	message_tcp *msg = malloc(sizeof(message_tcp));
+	memset(msg->buffer, 0, MESSAGE_LEN);
+
+	//Read data from image
+	FILE *fp;
+	char *buffer;
+	long file_size;
+
+	fp = fopen( file, "rb");
+	fseek(fp, 0, SEEK_END); // jumps to the end of the file
+	file_size = ftell(fp);  // gets the current byte offset in the file
+	rewind(fp);
+
+	buffer = (char *)malloc((file_size+1)*sizeof(char));
+	fread(buffer, file_size, 1, fp); //reads the whole file at once
+	fclose(fp);
+
+	//Send data to peer UNSTARTED
+	fgets(msg->buffer, MESSAGE_LEN, stdin);
+
+	memcpy(stream, msg, sizeof(message_tcp));
+	send(sock_fd, stream, sizeof(message_tcp), 0);
+}
