@@ -32,7 +32,7 @@ item* list_push(item* root, item* other){
 }
 
 //Creates an element and puts it in the beginning of the list
-item* list_insert(item* root, data K){
+void list_insert(item** root, data K){
 	item *new;
 
 	new = (item*)malloc(sizeof(item));
@@ -42,23 +42,23 @@ item* list_insert(item* root, data K){
 	}
 
 	new->K = K;
-	new->next = root;
-	root = new;
+	new->next = *root;
+	*root = new;
 
-	return root;
+	return;
 }
 
 //Puts element in the end of the list
-item* list_append(item* root, item* other){
-	item *aux = root;
+void list_append(item** root, item* other){
+	item *aux = *root;
 
 	if(other == NULL)
-		return root;
+		return;
 
-	if(root == NULL){
-		root = other;
+	if(*root == NULL){
+		*root = other;
 		other->next = NULL;
-		return root;
+		return;
 	}
 
 	while(aux->next != NULL)
@@ -67,7 +67,7 @@ item* list_append(item* root, item* other){
 	aux->next = other;
 	other->next = NULL;
 
-	return root;
+	return;
 }
 
 //Removes element with data K from the list
@@ -188,7 +188,7 @@ void list_sort(item** root){
 
 	//sort and merge the sublists together
 	*root = sort(first_half, second_half);
-	
+
 }*/
 
 /*Divides the list in half

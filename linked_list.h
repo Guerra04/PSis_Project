@@ -23,9 +23,9 @@ item* list_first(item** root);
 
 item* list_push(item* root, item* other);
 
-item* list_insert(item* root, data K);
+void list_insert(item** root, data K);
 
-item* list_append(item* root, item* other);
+void list_append(item** root, item* other);
 
 item* list_remove(item* root, data K);
 
