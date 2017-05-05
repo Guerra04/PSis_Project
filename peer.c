@@ -63,12 +63,12 @@ int main(int argc, char* argv[]){
 	int port = 3000 + getpid();
 
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(KNOWN_PORT);
+	server_addr.sin_port = htons(KNOWN_PORT_PEER);
 	inet_aton(KNOWN_IP, &server_addr.sin_addr);
 
 	message_gw *buff = malloc(sizeof(message_gw));
 	strcpy(buff->addr, "127.0.0.1");
-	buff->type = 1;
+	buff->type = 0;
 	buff->port = port;
 	printf("Server addr %s, server port %d, message type %d\n",
 		buff->addr, buff->port,  buff->type);

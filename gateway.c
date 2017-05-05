@@ -7,24 +7,31 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <pthread.h>
 #include "msgs.h"
 #include "linked_list.h"
 
-int sock_fd;
+int sock_fd_peer;
+int sock_fd_client;
 struct sigaction *handler;
+item* peer_list;
 
 void kill_server(int n) {
-	close(sock_fd);
+	close(sock_fd_peer);
+	close(sock_fd_client);
 	free(handler);
 	exit(0);
 }
 
+void *connection_peer(void *args);
+void *connection_client(void *args);
+
 int main(){
-	struct sockaddr_in local_addr;
-	struct sockaddr_in client_addr;
+
+
 	socklen_t size_addr;
 	int nbytes;
-	item* server_list = list_init();
+	peer_list = list_init();
 
 	//Action of SIGINT
 	handler = malloc(sizeof(handler));
@@ -32,69 +39,121 @@ int main(){
 	sigaction(SIGINT, handler, NULL);
 	/*******************/
 
-	sock_fd= socket(AF_INET, SOCK_DGRAM, 0);
+	pthread_t thread_peer;
+	pthread_t thread_client;
 
-	if (sock_fd == -1){
+	if(pthread_create(&thread_peer, NULL, connection_peer, NULL) == 0){
+		printf("success\n");
+	}
+
+	if(pthread_create(&thread_client, NULL, connection_client, NULL) == 0){
+		printf("success\n");
+	}
+
+	while(1);
+
+	exit(0);
+}
+void *connection_peer(void *args){
+	struct sockaddr_in local_addr;
+	struct sockaddr_in peer_addr;
+	int nbytes;
+
+	sock_fd_peer = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock_fd_peer == -1){
 		perror("socket: ");
 		exit(-1);
 	}
 
-
 	local_addr.sin_family = AF_INET;
-	local_addr.sin_port= htons(KNOWN_PORT);
+	local_addr.sin_port= htons(KNOWN_PORT_PEER);
 	local_addr.sin_addr.s_addr= INADDR_ANY;
 
-	int err = bind(sock_fd, (struct sockaddr *)&local_addr, sizeof(local_addr));
+	int err = bind(sock_fd_peer, (struct sockaddr *)&local_addr, sizeof(local_addr));
 	if(err == -1) {
 		perror("bind");
 		exit(-1);
 	}
+	printf(" socket created and binded \n Ready to receive messages\n");
 
+	message_gw *buff = malloc(sizeof(message_gw));
+	char * stream = malloc(sizeof(message_gw));
+	while(1){
+		socklen_t size_addr = sizeof(peer_addr);
+		nbytes = recvfrom(sock_fd_peer, stream, sizeof(message_gw), 0,
+				(struct sockaddr *) &peer_addr, &size_addr);
+		memcpy(buff, stream, sizeof(message_gw));
+
+		if(buff->type == 0){
+			printf("Server addr %s, server port %d, message type %d\n",
+					buff->addr, buff->port,  buff->type);
+				data K;
+				K.port = buff->port;
+				strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
+				list_insert(&peer_list, K);
+				printf("Server %s with port %d added to list\n", K.addr, K.port);
+		}else{
+			//FAZER SERVER
+		}
+	}
+}
+
+void *connection_client(void *args){
+	struct sockaddr_in local_addr;
+	struct sockaddr_in client_addr;
+	int nbytes;
+
+	sock_fd_client = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock_fd_client == -1){
+		perror("socket: ");
+		exit(-1);
+	}
+
+	local_addr.sin_family = AF_INET;
+	local_addr.sin_port= htons(KNOWN_PORT_CLIENT);
+	local_addr.sin_addr.s_addr= INADDR_ANY;
+
+	int err = bind(sock_fd_client, (struct sockaddr *)&local_addr, sizeof(local_addr));
+	if(err == -1) {
+		perror("bind");
+		exit(-1);
+	}
 	printf(" socket created and binded \n Ready to receive messages\n");
 
 	message_gw *buff = malloc(sizeof(message_gw));
 
+	char * stream = malloc(sizeof(message_gw));
 	while(1){
-		size_addr = sizeof(client_addr);
-		char * stream = malloc(sizeof(message_gw));
-		nbytes = recvfrom(sock_fd, stream, sizeof(message_gw), 0,
-			(struct sockaddr *) & client_addr, &size_addr);
+		socklen_t size_addr = sizeof(client_addr);
+		nbytes = recvfrom(sock_fd_client, stream, sizeof(message_gw), 0,
+				(struct sockaddr *) & client_addr, &size_addr);
 		memcpy(buff, stream, sizeof(message_gw));
-		/*printf("received %d bytes from %s %d --- %s ---\n",
-			nbytes, inet_ntoa(client_addr.sin_addr),client_addr.sin_port,  buff);*/
-		if(buff->type == 0){
-			item* aux = list_first(&server_list);
-			if(aux != NULL){
-				buff->type = 1;
-				strcpy(buff->addr, aux->K.addr);
-				buff->port = aux->K.port;
-			}
-			server_list = list_append(server_list, aux);
-			memcpy(stream, buff, sizeof(message_gw));
-			nbytes = sendto(sock_fd, stream, sizeof(message_gw), 0,
-				(const struct sockaddr *) &client_addr, sizeof(client_addr));
-			if( buff->type == 1){
-				printf("Client sent to communicate with server %s, port %d\n",
-			 		buff->addr, buff->port);
-			}
-		}else if(buff->type == 1){
-			printf("Server addr %s, server port %d, message type %d\n",
-				buff->addr, buff->port,  buff->type);
-			data K;
-			K.port = buff->port;
-			strcpy(K.addr, inet_ntoa(client_addr.sin_addr));
-			server_list = list_insert(server_list, K);
-			printf("Server %s with port %d added to list\n", K.addr, K.port);
-		}
-    }
 
-	exit(0);
+		item* aux = list_first(&peer_list);
+		if(aux != NULL){
+			buff->type = 0;
+			strcpy(buff->addr, aux->K.addr);
+			buff->port = aux->K.port;
+		}else{
+			buff->type = 1;
+		}
+
+		list_append(&peer_list, aux);
+		memcpy(stream, buff, sizeof(message_gw));
+		nbytes = sendto(sock_fd_client, stream, sizeof(message_gw), 0,
+			(const struct sockaddr *) &client_addr, sizeof(client_addr));
+		if( buff->type == 0){
+			printf("Client sent to communicate with server %s, port %d\n",
+				buff->addr, buff->port);
+		}
+	}
 }
 
+//Dummt functions
 int equal_data(data K1, data K2){
 		return 0;
 }
 
 void print_data(data K){
-
+	return;
 }
