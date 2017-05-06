@@ -11,6 +11,20 @@
 #include "gallery.h"
 #include "msgs.h"
 
+/*****************Private Funtions*******************************/
+int send_all(int socket, const void *buffer, size_t length, int flags){
+	ssize_t nbytes;
+	const char *p = buffer;
+	while (length > 0){
+		nbytes = send(socket, p, length, flags);
+		if (nbytes <= 0) break;
+		p += nbytes;
+		length -= nbytes;
+	}
+	return (nbytes <= 0) ? -1 : 0; //returns -1 in case of error
+}
+/****************Private Functions[END]***************************/
+
 int gallery_connect(char * host, uint32_t port){
 	/****************Gateway communication***************/
 	//Creation of UDP socket
@@ -77,10 +91,6 @@ int gallery_connect(char * host, uint32_t port){
 
 uint32_t gallery_add_photo(int sock_peer, char *file){
 
-	char *stream = malloc(sizeof(message_tcp));
-	message_tcp *msg = malloc(sizeof(message_tcp));
-	memset(msg->buffer, 0, MESSAGE_LEN);
-
 	//Read data from image
 	FILE *fp;
 	char *buffer;
@@ -91,13 +101,16 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	file_size = ftell(fp);  // gets the current byte offset in the file
 	rewind(fp);
 
-	buffer = (char *)malloc((file_size+1)*sizeof(char));
+	buffer = (char *)malloc((file_size)*sizeof(char));
 	fread(buffer, file_size, 1, fp); //reads the whole file at once
 	fclose(fp);
 
-	//Send data to peer UNSTARTED
-	fgets(msg->buffer, MESSAGE_LEN, stdin);
+	//Send data to Peer
+	if( send_all(sock_peer, buffer, file_size, 0) == -1 ){}
+		//error sending data
+		return 0;
+	}
 
-	memcpy(stream, msg, sizeof(message_tcp));
-	send(sock_fd, stream, sizeof(message_tcp), 0);
+	//TODO Receive photo identifier from Peer 
+
 }
