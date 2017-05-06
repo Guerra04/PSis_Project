@@ -106,11 +106,11 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	fclose(fp);
 
 	//Send data to Peer
-	if( send_all(sock_peer, buffer, file_size, 0) == -1 ){}
+	if( send_all(sock_peer, buffer, file_size, 0) == -1 ){
 		//error sending data
 		return 0;
 	}
 
-	//TODO Receive photo identifier from Peer 
+	//TODO Receive photo identifier from Peer
 
 }
