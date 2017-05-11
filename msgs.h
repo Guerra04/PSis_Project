@@ -1,5 +1,5 @@
 //#define SOCKET_NAME "best_socket"
-#define MESSAGE_LEN 100
+#define MAX_SIZE 100000000
 #define KNOWN_IP "127.0.0.1"
 #define KNOWN_PORT_PEER 3000
 #define KNOWN_PORT_CLIENT 3001
@@ -16,6 +16,17 @@ typedef struct message_gw{
 	int port;
 } message_gw;
 
-typedef struct message_tcp{
-	char buffer[MESSAGE_LEN];
+/**************************************
+* Message exchanged between a client
+* using the API and a peer
+*	# type:
+*	1 - add photo
+************************************/
+typedef struct message_photo{
+	char buffer[MAX_SIZE];
+	int type;
 } message_tcp;
+
+int send_all(int socket, const void *buffer, size_t length, int flags);
+
+int recv_all(int socket, void *buffer, size_t max_length, int flags);

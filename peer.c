@@ -41,6 +41,7 @@ int main(int argc, char* argv[]){
 	sigaction(SIGINT, handler, NULL);
 	/*******************/
 
+/*************Communication with Gateway*****************/
 	int sock_fd_gw= socket(AF_INET, SOCK_DGRAM, 0);
 
 	if (sock_fd_gw == -1){
@@ -50,16 +51,6 @@ int main(int argc, char* argv[]){
 
 	printf(" socket created \n Ready to send\n");
 
-
-		/*	client_gw_addr.sin_family = AF_INET;
-		client_gw_addr.sin_port = htons(3001);
-		client_gw_addr.sin_addr.s_addr = INADDR_ANY;
-		err = bind(sock_fd_gw, (struct sockaddr *)&client_gw_addr, sizeof(client_gw_addr));
-		if(err == -1) {
-		perror("bind");
-		exit(-1);
-	}
-	*/
 	int port = 3000 + getpid();
 
 	server_addr.sin_family = AF_INET;

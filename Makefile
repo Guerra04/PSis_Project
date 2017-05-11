@@ -28,8 +28,14 @@ client: client.o gallery.o
 client.o: client.c msgs.h gallery.o
 	$(COMPFLAGS) $<
 
-gallery.o: gallery.c gallery.h
+gallery.o: gallery.c gallery.h msgs.o
+	$(COMPFLAGS) $< msgs.o
+
+msgs.o: msgs.c msgs.h
 	$(COMPFLAGS) $<
+
+test: test.c
+	$(LINKFLAGS) $@ $<
 
 clean:
 	rm -f gateway peer client *.o
