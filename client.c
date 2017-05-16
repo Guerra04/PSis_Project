@@ -11,7 +11,7 @@
 #include "gallery.h"
 
 int sock_fd;
-message_tcp * msg;
+message_photo * msg;
 struct sigaction *handler;
 
 void kill_server(int n) {
@@ -46,19 +46,19 @@ int main(int argc, char* argv[]){
 	printf("---------------------------------------------------\n");
 
 	/*************Communication**************/
-	char *stream = malloc(sizeof(message_tcp));
-	message_tcp *msg = malloc(sizeof(message_tcp));
-	memset(msg->buffer, 0, MESSAGE_LEN);
-	fgets(msg->buffer,MESSAGE_LEN, stdin);
-	memcpy(stream, msg, sizeof(message_tcp));
-	send(sock_fd, stream, sizeof(message_tcp), 0);
-	while(recv(sock_fd, stream, sizeof(message_tcp), 0) != EOF){
-		memcpy(msg, stream, sizeof(message_tcp));
+	char *stream = malloc(sizeof(message_photo));
+	message_photo *msg = malloc(sizeof(message_photo));
+	memset(msg->buffer, 0, MAX_SIZE);
+	fgets(msg->buffer,MAX_SIZE, stdin);
+	memcpy(stream, msg, sizeof(message_photo));
+	send(sock_fd, stream, sizeof(message_photo), 0);
+	while(recv(sock_fd, stream, sizeof(message_photo), 0) != EOF){
+		memcpy(msg, stream, sizeof(message_photo));
 		printf("%s\n", msg->buffer);
-		memset(msg->buffer, 0, MESSAGE_LEN);
-		fgets(msg->buffer,MESSAGE_LEN, stdin);
-		memcpy(stream, msg, sizeof(message_tcp));
-		send(sock_fd, msg, sizeof(message_tcp), 0);
+		memset(msg->buffer, 0, MAX_SIZE);
+		fgets(msg->buffer,MAX_SIZE, stdin);
+		memcpy(stream, msg, sizeof(message_photo));
+		send(sock_fd, msg, sizeof(message_photo), 0);
 	}
 	/********Communication [END]*****************/
 	close(sock_fd);

@@ -26,24 +26,24 @@ item* list_first(item** root){
 }
 
 //Puts an element in the beginning of the list
-item* list_push(item* root, item* other){
+void list_push(item** root, item* other){
 
-    if(root == NULL){
-        root = other;
-        root->next = root;
-        root->prev = root;
+    if(*root == NULL){
+        *root = other;
+        (*root)->next = *root;
+        (*root)->prev = *root;
     }else{
-        other->prev = root->prev;
-		root->prev->next = other;
-    	other->next = root;
-        root->prev = other;
-    	root = other;
+        other->prev = (*root)->prev;
+		(*root)->prev->next = other;
+    	other->next = *root;
+        (*root)->prev = other;
+    	*root = other;
     }
-    return root;
+    return;
 }
 
 //Creates an element and puts it in the beginning of the list
-item* list_append(item* root, data K){
+void list_append(item** root, data K){
 	item *new;
 
 	new = (item*)malloc(sizeof(item));
@@ -53,8 +53,8 @@ item* list_append(item* root, data K){
 	}
 
 	new->K = K;
-	root = list_push(root, new);
-	return root;
+	list_push(root, new);
+	return;
 }
 
 
@@ -293,8 +293,13 @@ void list_print(item* root){
 	item *aux;
 	data k;
 
-	aux = root;
-	while(aux != NULL){
+	if(root == NULL){
+		printf("Empty List!\n");
+		return;
+	}
+	print_data(root->K);
+	aux = root->next;
+	while(aux != root->prev){
 		k = aux->K;
 		print_data(k);
 		aux = aux->next;

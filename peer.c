@@ -13,7 +13,7 @@
 
 //int client_fd;
 int sock_fd;
-message_tcp * msg;
+message_photo * msg;
 struct sigaction *handler;
 
 void strupr(char * line);
@@ -22,6 +22,7 @@ void *connection(void *client_fd);
 void kill_server(int n) {
 	close(sock_fd);
 	//int dummy = (client_fd!=-1) ? close(client_fd) : client_fd;
+	//TODO server tem de mandar msg ao gate way par ao tirar da lista
 	free(msg);
 	free(handler);
 	exit(0);
@@ -96,11 +97,10 @@ int main(int argc, char* argv[]){
 	listen(sock_fd, 1);
 
 	printf("Ready to accept connections\n");
-	msg = malloc(sizeof(message_tcp));
+	msg = malloc(sizeof(message_photo));
 	while(1){
 		int client_fd;
 		client_fd = accept(sock_fd, (struct sockaddr *) & client_addr, &size_addr);
-		printf("before: %d\n", client_fd);
 		pthread_t thread_id;
 
 		if(pthread_create(&thread_id, NULL, connection, &client_fd) == 0){
@@ -124,17 +124,16 @@ void *connection(void *client_fd){
 	//printf("Accepted one connection from %s \n", inet_ntoa(client_addr.sin_addr));
 	printf("Accepted one connection\n");
 	printf("---------------------------------------------------\n");
-	char *stream = malloc(sizeof(message_tcp));
+	char *stream = malloc(sizeof(message_photo));
 	int fd = *(int*)client_fd;
-	printf("after: %d\n", fd);
-	while(recv(fd, stream, sizeof(message_tcp), 0) != EOF){
+	while(recv(fd, stream, sizeof(message_photo), 0) != EOF){
 		printf("Received message from client:\n");
-		memcpy(msg, stream, sizeof(message_tcp));
+		memcpy(msg, stream, sizeof(message_photo));
 		printf("%s\n", msg->buffer);
 		strupr(msg->buffer);
 		printf("String converted\n");
-		memcpy(stream, msg, sizeof(message_tcp));
-		int nbytes = send(fd, stream, sizeof(message_tcp), 0);
+		memcpy(stream, msg, sizeof(message_photo));
+		int nbytes = send(fd, stream, sizeof(message_photo), 0);
 		printf("Sent message: %s\n", msg->buffer);
 	}
 	printf("---------------------------------------------------\n");

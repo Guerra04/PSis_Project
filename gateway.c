@@ -9,7 +9,9 @@
 #include <signal.h>
 #include <pthread.h>
 #include "msgs.h"
-#include "linked_list.h"
+#include "ring_list.h"
+
+#define DEBUG printf("aqui\n")
 
 int sock_fd_peer;
 int sock_fd_client;
@@ -54,6 +56,7 @@ int main(){
 
 	exit(0);
 }
+
 void *connection_peer(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in peer_addr;
@@ -90,7 +93,8 @@ void *connection_peer(void *args){
 				data K;
 				K.port = buff->port;
 				strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
-				list_insert(&peer_list, K);
+				list_append(&peer_list, K);
+				list_print(peer_list);
 				printf("Server %s with port %d added to list\n", K.addr, K.port);
 		}else{
 			//FAZER SERVER
@@ -134,26 +138,32 @@ void *connection_client(void *args){
 			buff->type = 0;
 			strcpy(buff->addr, aux->K.addr);
 			buff->port = aux->K.port;
+			list_append(&peer_list, aux->K);
 		}else{
 			buff->type = 1;
 		}
-
-		list_append(&peer_list, aux);
+		printf("%p\n", aux);
+		DEBUG;
 		memcpy(stream, buff, sizeof(message_gw));
 		nbytes = sendto(sock_fd_client, stream, sizeof(message_gw), 0,
 			(const struct sockaddr *) &client_addr, sizeof(client_addr));
-		if( buff->type == 0){
+		if(buff->type == 0){
 			printf("Client sent to communicate with server %s, port %d\n",
 				buff->addr, buff->port);
 		}
 	}
 }
 
-//Dummt functions
+//Dummy functions
 int equal_data(data K1, data K2){
 		return 0;
 }
 
 void print_data(data K){
+	printf("addr = %s, port = %d\n", K.addr, K.port);
 	return;
+}
+
+item* sort(item* list1, item* list2){
+	return NULL;
 }

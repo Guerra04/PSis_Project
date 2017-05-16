@@ -75,7 +75,7 @@ int gallery_connect(char * host, uint32_t port){
 }
 
 
-uint32_t gallery_add_photo(int sock_peer, char *file){
+/*uint32_t gallery_add_photo(int sock_peer, char *file){
 
 	//Read data from image
 	FILE *fp;
@@ -88,7 +88,7 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	rewind(fp);
 
 	message_photo *msg = malloc(sizeof(message_photo));
-	msg->buffer = (char *)malloc((file_size+1)*sizeof(char));
+	//msg->buffer = (char *)malloc((file_size+1)*sizeof(char));
 	fread(msg->buffer, file_size, 1, fp); //reads the whole file at once
 	msg->buffer[file_size] = '\0';
 	fclose(fp);
@@ -117,4 +117,4 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	else
 		return 0;
 
-}
+}*/

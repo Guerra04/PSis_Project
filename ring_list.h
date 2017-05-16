@@ -5,9 +5,8 @@
 
 /***Definir estrutura que contem dados de cada nó**/
 struct data{
-	int x;
-	int y;
-	int z;
+	char addr[20];
+	int port;
 };
 /**************************************************/
 struct item{
@@ -23,9 +22,9 @@ item* list_init();
 
 item* list_first(item** root);
 
-item* list_push(item* root, item* other);
+void list_push(item** root, item* other);
 
-item* list_append(item* root, data K);
+void list_append(item** root, data K);
 
 item* list_remove(item* root, data K);
 
