@@ -13,15 +13,18 @@
 
 int main(){
 	struct def{
-		char buffer[SIZE];
+		char *buffer;
 		int type;
 	};
-	struct def *msg = malloc(sizeof(struct def));
-	printf("%lu\n", sizeof(msg));
-	printf("%lu\n", sizeof(*msg));
+	struct def msg;
+	char frase[] = "coconibo";
+	int x = 2;
 
-	char *stream = malloc(SIZE*sizeof(char)+sizeof(int));
-	printf("%lu\n", sizeof(long));
+	msg.type = x;
+	msg.buffer = malloc(strlen(frase)*sizeof(char));
+	strcpy(msg.buffer, frase);
+
+	printf("%lu\n", sizeof(msg));
 	printf("%lu\n", sizeof(struct def));
 
 	return 0;

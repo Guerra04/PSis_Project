@@ -75,11 +75,10 @@ int gallery_connect(char * host, uint32_t port){
 }
 
 
-/*uint32_t gallery_add_photo(int sock_peer, char *file){
+uint32_t gallery_add_photo(int sock_peer, char *file){
 
-	//Read data from image
+	//Get size of photo
 	FILE *fp;
-	char *buffer;
 	long file_size;
 
 	fp = fopen( file, "rb");
@@ -87,19 +86,26 @@ int gallery_connect(char * host, uint32_t port){
 	file_size = ftell(fp);  // gets the current byte offset in the file
 	rewind(fp);
 
+	//Send photo size and name
 	message_photo *msg = malloc(sizeof(message_photo));
-	//msg->buffer = (char *)malloc((file_size+1)*sizeof(char));
-	fread(msg->buffer, file_size, 1, fp); //reads the whole file at once
-	msg->buffer[file_size] = '\0';
-	fclose(fp);
+	char *name_and_size = malloc(MAX_SIZE*sizeof(char));
+	char temp[20];
+	sprintf(temp, "%lu",file_size); // file_size to char
+	name_and_size = strcat(file,temp);
+	strcpy(msg->buffer, name_and_size);
 	msg->type = 1;
-
-	//TODO saber o size de uma estrutura com ponteiros alocados
-	//Send data to Peer
-	//TODO Send name?
 	char * stream = malloc(sizeof(message_photo));
 	memcpy(stream, msg, sizeof(message_photo));
 	if( send_all(sock_peer, stream, sizeof(message_photo), 0) == -1 ){
+		//error sending data
+		return 0;
+	}
+
+	//Send photo
+	char *buffer = (char *)malloc((file_size)*sizeof(char));
+	fread(buffer, file_size, 1, fp); //reads the whole file at once
+	fclose(fp);
+	if( send_all(sock_peer, buffer, file_size, 0) == -1 ){
 		//error sending data
 		return 0;
 	}
@@ -117,4 +123,4 @@ int gallery_connect(char * host, uint32_t port){
 	else
 		return 0;
 
-}*/
+}
