@@ -1,5 +1,5 @@
 //#define SOCKET_NAME "best_socket"
-#define MAX_SIZE 100000000
+#define MAX_SIZE 100
 #define KNOWN_IP "127.0.0.1"
 #define KNOWN_PORT_PEER 3000
 #define KNOWN_PORT_CLIENT 3001
@@ -25,7 +25,7 @@ typedef struct message_gw{
 typedef struct message_photo{
 	char buffer[MAX_SIZE];
 	int type;
-} message_tcp;
+} message_photo;
 
 int send_all(int socket, const void *buffer, size_t length, int flags);
 
