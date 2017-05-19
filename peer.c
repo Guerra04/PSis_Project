@@ -11,8 +11,14 @@
 #include <ctype.h>
 #include "msgs.h"
 
+#define ADDR "127.0.0.1"
+#define PORT 3000 + getpid()
 //int client_fd;
 int sock_fd;
+int sock_fd_gw;
+int port;
+struct sockaddr_in server_addr;
+message_gw *buff;
 message_photo * msg;
 struct sigaction *handler;
 
@@ -20,16 +26,24 @@ void strupr(char * line);
 void *connection(void *client_fd);
 
 void kill_server(int n) {
+	buff = malloc(sizeof(message_gw));
+	strcpy(buff->addr, ADDR);
+	buff->type = -1;
+	buff->port = PORT;
+	char * stream = malloc(sizeof(message_gw));
+	memcpy(stream, buff, sizeof(message_gw));
+	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
+		(const struct sockaddr *) &server_addr, sizeof(server_addr));
+
 	close(sock_fd);
-	//int dummy = (client_fd!=-1) ? close(client_fd) : client_fd;
-	//TODO server tem de mandar msg ao gate way par ao tirar da lista
+	close(sock_fd_gw);
+	free(buff);
 	free(msg);
 	free(handler);
 	exit(0);
 }
 
 int main(int argc, char* argv[]){
-	struct sockaddr_in server_addr;
 	struct sockaddr_in client_gw_addr;
 	struct sockaddr_in local_addr;
 	struct sockaddr_in client_addr;
@@ -43,7 +57,7 @@ int main(int argc, char* argv[]){
 	/*******************/
 
 /*************Communication with Gateway*****************/
-	int sock_fd_gw= socket(AF_INET, SOCK_DGRAM, 0);
+	sock_fd_gw= socket(AF_INET, SOCK_DGRAM, 0);
 
 	if (sock_fd_gw == -1){
 		perror("socket: ");
@@ -52,16 +66,14 @@ int main(int argc, char* argv[]){
 
 	printf(" socket created \n Ready to send\n");
 
-	int port = 3000 + getpid();
-
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(KNOWN_PORT_PEER);
 	inet_aton(KNOWN_IP, &server_addr.sin_addr);
 
-	message_gw *buff = malloc(sizeof(message_gw));
-	strcpy(buff->addr, "127.0.0.1");
+	buff = malloc(sizeof(message_gw));
+	strcpy(buff->addr, ADDR);
 	buff->type = 0;
-	buff->port = port;
+	buff->port = PORT;
 	printf("Server addr %s, server port %d, message type %d\n",
 		buff->addr, buff->port,  buff->type);
 	char * stream = malloc(sizeof(message_gw));
@@ -72,7 +84,7 @@ int main(int argc, char* argv[]){
 	/*nbytes = recv(sock_fd_gw, buff, 100, 0);
 	printf("received %d bytes --- %s ---\n", nbytes, buff);*/
 	free(buff);
-	close(sock_fd_gw);
+	//close(sock_fd_gw);
 
 /*****************************SOCKET TCP*****************************/
 

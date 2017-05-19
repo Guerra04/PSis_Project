@@ -17,8 +17,10 @@ int sock_fd_peer;
 int sock_fd_client;
 struct sigaction *handler;
 item* peer_list;
+pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void kill_server(int n) {
+	list_free(peer_list);
 	close(sock_fd_peer);
 	close(sock_fd_client);
 	free(handler);
@@ -74,7 +76,7 @@ void *connection_peer(void *args){
 
 	int err = bind(sock_fd_peer, (struct sockaddr *)&local_addr, sizeof(local_addr));
 	if(err == -1) {
-		perror("bind");
+		perror("bind: ");
 		exit(-1);
 	}
 	printf(" socket created and binded \n Ready to receive messages\n");
@@ -93,11 +95,19 @@ void *connection_peer(void *args){
 				data K;
 				K.port = buff->port;
 				strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
+				pthread_mutex_lock(&list_lock);
 				list_append(&peer_list, K);
-				list_print(peer_list);
+				pthread_mutex_unlock(&list_lock);
 				printf("Server %s with port %d added to list\n", K.addr, K.port);
+		}else if(buff->type == -1){
+			data K;
+			K.port = buff->port;
+			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
+			pthread_mutex_lock(&list_lock);
+			peer_list = list_remove(peer_list, K);
+			pthread_mutex_unlock(&list_lock);
 		}else{
-			//FAZER SERVER
+			printf("That's the wrong number\n");
 		}
 	}
 }
@@ -138,7 +148,9 @@ void *connection_client(void *args){
 			buff->type = 0;
 			strcpy(buff->addr, aux->K.addr);
 			buff->port = aux->K.port;
+			pthread_mutex_lock(&list_lock);
 			list_append(&peer_list, aux->K);
+			pthread_mutex_unlock(&list_lock);
 		}else{
 			buff->type = 1;
 		}
@@ -156,7 +168,10 @@ void *connection_client(void *args){
 
 //Dummy functions
 int equal_data(data K1, data K2){
-		return 0;
+		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
+			return 1;
+		else
+			return 0;
 }
 
 void print_data(data K){
