@@ -1,0 +1,12 @@
+# Ignore all
+*
+
+# Unignore all these
+!*.c
+!*.h
+!Makefile
+!README.md
+!.gitignore
+
+# Unignore all dirs
+!*/
