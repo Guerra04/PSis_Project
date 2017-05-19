@@ -299,7 +299,7 @@ void list_print(item* root){
 	}
 	print_data(root->K);
 	aux = root->next;
-	while(aux != root->prev){
+	while(aux != root){
 		k = aux->K;
 		print_data(k);
 		aux = aux->next;

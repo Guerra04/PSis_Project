@@ -6,7 +6,7 @@
 
 //server
 //type 0 - thread active
-//type 1 - thread delete
+//type -1 - thread delete
 //client
 //type 0 - ok
 //type 1 - no peers available
