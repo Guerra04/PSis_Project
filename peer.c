@@ -10,14 +10,18 @@
 #include <pthread.h>
 #include <ctype.h>
 #include "msgs.h"
+#include "linked_list.h"
 
 //int client_fd;
 int sock_fd;
 message_photo * msg;
 struct sigaction *handler;
+item *photo_list = NULL;
 
 void strupr(char * line);
 void *connection(void *client_fd);
+void testing_comm(int fd, message_photo *msg);
+int add_photo(int fd, message_photo *msg);
 
 void kill_server(int n) {
 	close(sock_fd);
@@ -30,10 +34,9 @@ void kill_server(int n) {
 
 int main(int argc, char* argv[]){
 	struct sockaddr_in server_addr;
-	struct sockaddr_in client_gw_addr;
+	//struct sockaddr_in client_gw_addr;
 	struct sockaddr_in local_addr;
 	struct sockaddr_in client_addr;
-	int nbytes;
 	int err;
 
 	//Action of SIGINT
@@ -66,7 +69,7 @@ int main(int argc, char* argv[]){
 		buff->addr, buff->port,  buff->type);
 	char * stream = malloc(sizeof(message_gw));
 	memcpy(stream, buff, sizeof(message_gw));
-	nbytes = sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
+	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
 		(const struct sockaddr *) &server_addr, sizeof(server_addr));
 	//printf("sent %d %s\n", nbytes, buff);
 	/*nbytes = recv(sock_fd_gw, buff, 100, 0);
@@ -129,14 +132,69 @@ void *connection(void *client_fd){
 	while(recv(fd, stream, sizeof(message_photo), 0) != EOF){
 		printf("Received message from client:\n");
 		memcpy(msg, stream, sizeof(message_photo));
-		printf("%s\n", msg->buffer);
-		strupr(msg->buffer);
-		printf("String converted\n");
-		memcpy(stream, msg, sizeof(message_photo));
-		int nbytes = send(fd, stream, sizeof(message_photo), 0);
+		switch(msg->type){
+			case 0:
+			testing_comm(fd, msg);
+			break;
+			case 1:
+			add_photo(fd, msg); //TODO resend if negative
+			break;
+			default:
+			strcpy(msg->buffer,"Type of message undefined!");
+			printf("%s\n", msg->buffer);
+		}
+		//ECHO of the reply
 		printf("Sent message: %s\n", msg->buffer);
 	}
 	printf("---------------------------------------------------\n");
 	printf("closing connectin with client\n");
 	close(fd);
+}
+
+void testing_comm(int fd, message_photo *msg){
+	printf("%s\n", msg->buffer);
+	strupr(msg->buffer);
+	printf("String converted\n");
+	char *stream = malloc(sizeof(message_photo));
+	memcpy(stream, msg, sizeof(message_photo));
+	/*int nbytes = */send(fd, stream, sizeof(message_photo), 0);
+	free(stream);
+}
+
+int add_photo(int fd, message_photo *msg){
+	char name[MAX_SIZE];
+	char ext[10];
+	long size=0;
+	long id=0;
+	char photo_name[MAX_SIZE];
+
+	sscanf(msg->buffer,"%s[^.]%s%*[^01233456789]%lu", name, ext, &size);
+	//TODO calc id of photo
+	sprintf(photo_name, "%s.%s", name, ext);
+	//Saving photo characteristics in list
+	data photo;
+	photo = set_data(photo_name, id);
+	list_insert(&photo_list, photo);
+	//Receive photo
+	char *stream = malloc(size*sizeof(char));
+	if(recv_all(fd, stream, size, 0) <= 0){
+		printf("Error receiving photo\n");
+		return -1;
+	}
+	//Saving photo in disk
+	sprintf(photo_name, "%lu.%s", id, ext);
+	FILE *fp;
+	if((fp = fopen( photo_name, "wb")) == NULL){
+		perror("Opening file to write");
+		exit(-1);
+	}
+	fwrite(stream, size, 1, fp);//TODO writes all at once?
+	fclose(fp);
+	free(stream);
+	//Sending photo id to client
+	if( send_all(fd, &id, sizeof(long), 0) == -1){
+		printf("Error sending photo\n");
+		return -2;
+	}
+	return id;
 }

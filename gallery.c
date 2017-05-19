@@ -81,7 +81,10 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	FILE *fp;
 	long file_size;
 
-	fp = fopen( file, "rb");
+	if((fp = fopen( file, "rb")) == NULL){
+		//Invalid filename
+		return 0;
+	}
 	fseek(fp, 0, SEEK_END); // jumps to the end of the file
 	file_size = ftell(fp);  // gets the current byte offset in the file
 	rewind(fp);

@@ -1,12 +1,14 @@
 #ifndef LINKED_LIST
 #define LINKED_LIST
+#define SIZE 100
 #include <stdio.h>
 #include <stdlib.h>
 
 /***Definir estrutura que contem dados de cada nó**/
 struct data{
-	char addr[20];
-	int port;
+	char name[SIZE];
+	long id;
+	char keyword[20][SIZE];
 };
 /**************************************************/
 struct item{
@@ -42,7 +44,7 @@ void list_sort(item** root);
 void list_split(item* head, item** first_half, item** second_half);
 
 /***** funções abstratas (falta implementação)***/
-data set_data(data K);
+data set_data(char* name, long id);
 
 int equal_data(data K1, data K2); //sucesso=1, insucesso=0
 

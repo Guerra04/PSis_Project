@@ -20,6 +20,7 @@ typedef struct message_gw{
 * Message exchanged between a client
 * using the API and a peer
 *	# type:
+*	0 - debug (strup)
 *	1 - add photo
 ************************************/
 typedef struct message_photo{

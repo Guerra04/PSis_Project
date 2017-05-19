@@ -26,13 +26,10 @@ int recv_all(int socket, void *buffer, size_t max_length, int flags){
 	ssize_t nbytes;
 	int total_bytes = 0;
 	char *p = buffer;
-	while (*p != '\0'){
-		if(nbytes != 0)
-			p++;
+	while (total_bytes < max_length){
 		nbytes = recv(socket, p, max_length, flags);
 		if (nbytes <= 0) break;
 		p += nbytes;
-		p--;
 		total_bytes += nbytes;
 	}
 	if(total_bytes > max_length)

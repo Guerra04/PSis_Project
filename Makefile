@@ -19,10 +19,10 @@ linked_list.o: linked_list.c linked_list.h
 ring_list.o: ring_list.c ring_list.h
 	$(COMPFLAGS) $<
 
-peer: peer.o
+peer: peer.o linked_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-peer.o: peer.c msgs.h
+peer.o: peer.c msgs.h linked_list.h
 	$(COMPFLAGS) $<
 
 client: client.o gallery.o
@@ -31,8 +31,8 @@ client: client.o gallery.o
 client.o: client.c msgs.h gallery.o
 	$(COMPFLAGS) $<
 
-gallery.o: gallery.c gallery.h msgs.o
-	$(COMPFLAGS) $< msgs.o
+gallery.o: gallery.c gallery.h msgs.c
+	$(COMPFLAGS) $< msgs.c
 
 msgs.o: msgs.c msgs.h
 	$(COMPFLAGS) $<
