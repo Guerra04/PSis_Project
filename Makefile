@@ -19,11 +19,11 @@ linked_list.o: linked_list.c linked_list.h
 ring_list.o: ring_list.c ring_list.h
 	$(COMPFLAGS) $<
 
-peer: peer.o linked_list.o
+peer: peer.o linked_list.o msgs.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-peer.o: peer.c msgs.h linked_list.h
-	$(COMPFLAGS) $<
+peer.o: peer.c msgs.c linked_list.c
+	$(COMPFLAGS) $^
 
 client: gallery.o client.o msgs.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)

@@ -211,3 +211,22 @@ int add_photo(int fd, message_photo *msg){
 	}
 	return id;
 }
+
+data set_data(char* name, long id){
+	data K;
+	strcpy(K.name, name);
+	K.id = id;
+	return K;
+}
+
+int equal_data(data K1, data K2){
+		if(K1.id == K2.id)
+			return 1;
+		else
+			return 0;
+}
+
+void print_data(data K){
+	printf("photo: name = %s, id = %lu\n", K.name, K.id);
+	return;
+}
