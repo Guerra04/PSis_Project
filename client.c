@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <stdint.h> //uint_'s
 #include "msgs.h"
 #include "gallery.h"
 #define LINE_S 100
@@ -64,7 +65,12 @@ int main(int argc, char* argv[]){
 		//Command to add a photo to the gallery
 		else if(strcmp(command,"add") == 0){
 			if(strcmp(arg,"") != 0){
-				gallery_add_photo(fd, arg);
+				uint32_t photo_id = gallery_add_photo(fd, arg);
+				if(photo_id){
+					printf("Uploading successful: photo_id = %d\n", photo_id);
+				}else{
+					printf("Error uploading photo!\n");
+				}
 			}else{
 				usage("add <filename>");
 			}

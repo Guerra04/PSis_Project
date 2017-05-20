@@ -5,7 +5,13 @@ COMPFLAGS = gcc -Wall -c
 LINKFLAGS = gcc -o
 EXTRAFLAGS = -lpthread
 
-all: gateway peer client gallery.o
+all: gateway peer client gallery.o receiver sender
+
+receiver: peer.o linked_list.o msgs.o
+	$(LINKFLAGS) Receiver/peer $^ $(EXTRAFLAGS)
+
+sender: gallery.o client.o msgs.o
+	$(LINKFLAGS) Sender/client $^ $(EXTRAFLAGS)
 
 gateway: gateway.o ring_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)

@@ -196,9 +196,10 @@ int add_photo(int fd, message_photo *msg){
 	long size=0;
 	long id=0;
 	char photo_name[MAX_SIZE];
-
-	sscanf(msg->buffer,"%s[^.]%s%*[^01233456789]%lu", name, ext, &size);
+	//TODO recebe nome mal
+	sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
 	//TODO calc id of photo
+	id = 144;
 	sprintf(photo_name, "%s.%s", name, ext);
 	//Saving photo characteristics in list
 	data photo;
@@ -225,6 +226,7 @@ int add_photo(int fd, message_photo *msg){
 		printf("Error sending photo\n");
 		return -2;
 	}
+	//TODO bcast to other peers
 	return id;
 }
 

@@ -16,16 +16,12 @@ int main(){
 		char *buffer;
 		int type;
 	};
-	struct def msg;
-	char frase[] = "coconibo";
-	int x = 2;
+	char name[MAX_SIZE];
+	char ext[10];
+	long size=0;
 
-	msg.type = x;
-	msg.buffer = malloc(strlen(frase)*sizeof(char));
-	strcpy(msg.buffer, frase);
-
-	printf("%lu\n", sizeof(msg));
-	printf("%lu\n", sizeof(struct def));
+	sscanf("thisimage.jpg50000","%[^.].%[^01233456789]%lu", name, ext, &size);
+	printf("%s %s %lu\n", name, ext, size);
 
 	return 0;
 }

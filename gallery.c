@@ -86,6 +86,7 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 
 	if((fp = fopen( file, "rb")) == NULL){
 		//Invalid filename
+		perror("Filename: ");
 		return 0;
 	}
 	fseek(fp, 0, SEEK_END); // jumps to the end of the file
@@ -104,6 +105,7 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	memcpy(stream, msg, sizeof(message_photo));
 	if( send_all(sock_peer, stream, sizeof(message_photo), 0) == -1 ){
 		//error sending data
+		perror("Communication: ");
 		return 0;
 	}
 
@@ -113,16 +115,18 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	fclose(fp);
 	if( send_all(sock_peer, buffer, file_size, 0) == -1 ){
 		//error sending data
+		perror("Communication: ");
 		return 0;
 	}
 
 	//Receive photo identifier from Peer
-	if( recv_all(sock_peer, stream, sizeof(message_photo), 0) == -1 ){
+	uint32_t photo_id = 0;
+	if( recv_all(sock_peer, &photo_id, sizeof(long), 0) == -1 ){
 		//error receiving data
+		perror("Communication: ");
 		return 0;
 	}
-	memcpy(msg, stream, sizeof(message_photo));
-	uint32_t photo_id = atol(msg->buffer);
+
 	//TODO Send photo id (peer side)
 	if(photo_id > 0)
 		return photo_id;
