@@ -10,6 +10,7 @@
 #include <string.h> //memcpy
 #include "gallery.h"
 #include "msgs.h"
+#define DEBUG_PEER(addr,port) printf("peer: addr - %s , port - %d\n", addr,port);
 
 int gallery_connect(char * host, uint32_t port){
 	/****************Gateway communication***************/
@@ -44,7 +45,7 @@ int gallery_connect(char * host, uint32_t port){
 		return -1;
 	}
 	memcpy(buff, stream, sizeof(message_gw));
-	printf("Received server info\n");
+	printf("Received gateway info\n");
 	close(sock_fd_gw);
 	if( buff->type == 1){
 		//no Peer is available
@@ -63,11 +64,13 @@ int gallery_connect(char * host, uint32_t port){
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port= htons(buff->port);
 	inet_aton(buff->addr, &server_addr.sin_addr);
+	DEBUG_PEER(buff->addr, buff->port);
 	free(buff);
 	free(stream);
 
 	if( -1 == connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr))){
 		perror("Connecting to Peer: ");
+		printf("%d\n",errno );
 		exit(-1);
 	}
 

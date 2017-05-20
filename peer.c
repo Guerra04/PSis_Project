@@ -14,10 +14,10 @@
 
 #define ADDR "127.0.0.1"
 #define PORT 3000 + getpid()
+#define DEBUG printf("aqui\n")
 //int client_fd;
 int sock_fd;
 int sock_fd_gw;
-int port;
 struct sockaddr_in server_addr;
 message_gw *buff;
 message_photo * msg;
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]){
 	}
 
 	local_addr.sin_family = AF_INET;
-	local_addr.sin_port= htons(port);
+	local_addr.sin_port= htons(PORT);
 	local_addr.sin_addr.s_addr= INADDR_ANY;
 	err = bind(sock_fd, (struct sockaddr *)&local_addr, sizeof(local_addr));
 	if(err == -1) {
@@ -110,13 +110,14 @@ int main(int argc, char* argv[]){
 	}
 	printf(" socket created and binded \n");
 
-	listen(sock_fd, 1);
+	listen(sock_fd, 5);
 
 	printf("Ready to accept connections\n");
 	msg = malloc(sizeof(message_photo));
 	while(1){
 		int client_fd;
 		client_fd = accept(sock_fd, (struct sockaddr *) & client_addr, &size_addr);
+		DEBUG;
 		pthread_t thread_id;
 
 		if(pthread_create(&thread_id, NULL, connection, &client_fd) == 0){
