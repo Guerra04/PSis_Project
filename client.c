@@ -34,7 +34,7 @@ int main(int argc, char* argv[]){
 	switch(fd){
 		case -1:
 		printf("[ABORTING] Gateway cannot be accessed\n");
-		exit(0);
+		exit(1);
 		break;
 		case 0:
 		printf("[ABORTING] There are no Peers availabe\n");

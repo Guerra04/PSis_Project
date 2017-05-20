@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <errno.h>
 #include "msgs.h"
 #include "linked_list.h"
 
@@ -31,6 +32,7 @@ int add_photo(int fd, message_photo *msg);
 
 void kill_server(int n) {
 	buff = malloc(sizeof(message_gw));
+	//Message to send to gateway letting it know that this peer terminated
 	strcpy(buff->addr, ADDR);
 	buff->type = -1;
 	buff->port = PORT;
@@ -73,7 +75,7 @@ int main(int argc, char* argv[]){
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(KNOWN_PORT_PEER);
 	inet_aton(KNOWN_IP, &server_addr.sin_addr);
-
+	//Sending to gatway this peer's information
 	buff = malloc(sizeof(message_gw));
 	strcpy(buff->addr, ADDR);
 	buff->type = 0;
@@ -84,10 +86,23 @@ int main(int argc, char* argv[]){
 	memcpy(stream, buff, sizeof(message_gw));
 	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
 		(const struct sockaddr *) &server_addr, sizeof(server_addr));
-	//printf("sent %d %s\n", nbytes, buff);
-	/*nbytes = recv(sock_fd_gw, buff, 100, 0);
-	printf("received %d bytes --- %s ---\n", nbytes, buff);*/
+
+	/*****Waits for acknowledgment of gateway****/
+	//sets timeout of recv(...)
+	struct timeval tv;
+	tv.tv_sec = 5;  // 5 seconds timeout
+	tv.tv_usec = 0;
+	setsockopt(sock_fd_gw, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+
+	recv(sock_fd_gw, stream, sizeof(message_gw), 0);
+	if(errno == EAGAIN || errno == EWOULDBLOCK){
+		//timeout occured
+		printf("[ABORTING] The Gateway is not online\n");
+		exit(1);
+	}
+
 	free(buff);
+	free(stream);
 	//close(sock_fd_gw);
 
 /*****************************SOCKET TCP*****************************/

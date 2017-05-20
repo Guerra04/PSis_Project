@@ -90,8 +90,6 @@ void *connection_peer(void *args){
 		memcpy(buff, stream, sizeof(message_gw));
 
 		if(buff->type == 0){
-			printf("Server addr %s, server port %d, message type %d\n",
-					buff->addr, buff->port,  buff->type);
 				data K;
 				K.port = buff->port;
 				strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -99,6 +97,9 @@ void *connection_peer(void *args){
 				list_append(&peer_list, K);
 				pthread_mutex_unlock(&list_lock);
 				printf("Server %s with port %d added to list\n", K.addr, K.port);
+				//Send acknowledgment to peer
+				sendto(sock_fd_peer, stream, sizeof(message_gw), 0,
+					(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
 		}else if(buff->type == -1){
 			data K;
 			K.port = buff->port;
