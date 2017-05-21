@@ -34,15 +34,15 @@ int main(int argc, char* argv[]){
 
 	switch(fd){
 		case -1:
-		printf("[ABORTING] Gateway cannot be accessed\n");
-		exit(1);
-		break;
+			printf("[ABORTING] Gateway cannot be accessed\n");
+			exit(1);
+			break;
 		case 0:
-		printf("[ABORTING] There are no Peers availabe\n");
-		exit(0);
-		break;
+			printf("[ABORTING] There are no Peers availabe\n");
+			exit(0);
+			break;
 		default:
-		printf("Connection to Peer successful\n");
+			printf("Connection to Peer successful\n");
 	}
 /*****************************MENU*****************************/
 	printf("---------------------------------------------------\n");
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]){
 		strcpy(arg,"");
 		//Get user input
 		fgets(line,LINE_S, stdin);
-		sscanf(line,"%s %s", command, arg);//TODO maybe scan for garbage
+		sscanf(line,"%s %[^\n]", command, arg);//TODO maybe scan for garbage
 
 		//[HIDDEN] é só pra nós testarmos
 		if(strcmp(command,"test") == 0){
@@ -67,12 +67,29 @@ int main(int argc, char* argv[]){
 			if(strcmp(arg,"") != 0){
 				uint32_t photo_id = gallery_add_photo(fd, arg);
 				if(photo_id){
-					printf("Uploading successful: photo_id = %d\n", photo_id);
+					printf("Uploading successful: photo_id = %u\n", photo_id);
 				}else{
 					printf("Error uploading photo!\n");
 				}
 			}else{
 				usage("add <filename>");
+			}
+		}
+		//Command to add a keyword to a photo
+		else if(strcmp(command,"keyadd") == 0){
+			uint32_t photo_id = 0; char keyword[LINE_S];
+			sscanf(arg, "%u %s", &photo_id, keyword);
+			if(photo_id != 0 && strcmp(keyword, "") != 0){
+				int error = gallery_add_keyword(fd, photo_id, keyword);
+				if(error == 0){
+					printf("keyword '%s' added succesfully!\n", keyword);
+				}else if(error == -1){
+					printf("keyword list already full\n");
+				}else if(error == -2){
+					printf("photo with %u doesn't exist in the gallery\n",photo_id);
+				}
+			}else{
+				usage("keyadd <photo_id> <keyword>");
 			}
 		}
 		//None of the above commands

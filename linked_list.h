@@ -1,6 +1,7 @@
 #ifndef LINKED_LIST
 #define LINKED_LIST
 #define SIZE 100
+#define MAX_KEYWORDS 20
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,7 +9,8 @@
 struct data{
 	char name[SIZE];
 	long id;
-	char keyword[20][SIZE];
+	char keyword[MAX_KEYWORDS][SIZE];
+	int n_keywords;
 };
 /**************************************************/
 struct item{

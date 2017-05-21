@@ -10,6 +10,7 @@
 #include <string.h> //memcpy
 #include "gallery.h"
 #include "msgs.h"
+
 #define DEBUG_PEER(addr,port) printf("peer: addr - %s , port - %d\n", addr,port);
 
 int gallery_connect(char * host, uint32_t port){
@@ -133,4 +134,28 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	else
 		return 0;
 
+}
+
+
+int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
+
+	message_photo *msg = malloc(sizeof(message_photo));
+	char *id_and_keyword = malloc(MAX_SIZE * sizeof(char));
+	sprintf(id_and_keyword, "%u.%s", id_photo, keyword); //concatenate
+	strcpy(msg->buffer, id_and_keyword);
+	msg->type = 2;
+
+	char * stream = malloc(sizeof(message_photo));
+	memcpy(stream, msg, sizeof(message_photo));
+	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
+		//error sending data
+		perror("Communication: ");
+		return 0;
+	}
+
+	//Receive int from peer
+	int error;
+	recv(peer_socket, &error, sizeof(int), 0);
+
+	return error;
 }

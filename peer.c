@@ -15,6 +15,9 @@
 
 #define ADDR "127.0.0.1"
 #define PORT 3000 + getpid()
+
+#define KEYWORD_SIZE 100
+
 #define DEBUG printf("aqui\n")
 //int client_fd;
 int sock_fd;
@@ -29,6 +32,7 @@ void strupr(char * line);
 void *connection(void *client_fd);
 void testing_comm(int fd, message_photo *msg);
 int add_photo(int fd, message_photo *msg);
+void add_keyword(int fd, message_photo *msg);
 
 void kill_server(int n) {
 	buff = malloc(sizeof(message_gw));
@@ -163,11 +167,14 @@ void *connection(void *client_fd){
 		memcpy(msg, stream, sizeof(message_photo));
 		switch(msg->type){
 			case 0:
-			testing_comm(fd, msg);
-			break;
+				testing_comm(fd, msg);
+				break;
 			case 1:
-			add_photo(fd, msg); //TODO resend if negative
-			break;
+				add_photo(fd, msg); //TODO resend if negative
+				break;
+			case 2:
+				add_keyword(fd, msg);
+				break;
 			default:
 			strcpy(msg->buffer,"Type of message undefined!");
 			printf("%s\n", msg->buffer);
@@ -230,10 +237,36 @@ int add_photo(int fd, message_photo *msg){
 	return id;
 }
 
+void add_keyword(int fd, message_photo *msg){
+	long id;
+	char keyword[KEYWORD_SIZE];
+	int error;
+
+	sscanf(msg->buffer, "%lu.%s", &id, keyword);
+	data K;
+	K.id = id;
+	item* aux = list_search(photo_list, K);
+
+	if(aux == NULL){ //photo with sent id doesn't exist
+		error = -2;
+	}else{
+		if(aux->K.n_keywords < MAX_KEYWORDS){
+			//TODO bcast to all peers
+			strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
+			error = 0;
+		}else{ //keyword list already full
+			error = -1;
+		}
+	}
+	send(fd, &error, sizeof(int), 0);
+	return;
+}
+
 data set_data(char* name, long id){
 	data K;
 	strcpy(K.name, name);
 	K.id = id;
+	K.n_keywords = 0;
 	return K;
 }
 
@@ -245,6 +278,9 @@ int equal_data(data K1, data K2){
 }
 
 void print_data(data K){
-	printf("photo: name = %s, id = %lu\n", K.name, K.id);
+	printf("photo: name = %s, id = %lu, KW = ", K.name, K.id);
+	for(int i = 0; i < 20; i++)
+		printf("%s ", K.keyword[i]);
+	printf("\n");
 	return;
 }

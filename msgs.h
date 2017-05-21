@@ -22,6 +22,7 @@ typedef struct message_gw{
 *	# type:
 *	0 - debug (strup)
 *	1 - add photo
+*   2 - add keyword
 ************************************/
 typedef struct message_photo{
 	char buffer[MAX_SIZE];
