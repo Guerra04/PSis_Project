@@ -284,6 +284,7 @@ void delete_photo(int fd, message_photo *msg){
 		found = 0;
 	}else{
 		found = 1;
+		//TODO bcast to all peers
 	}
 	if( send_all(fd, &found, sizeof(int), 0) == -1){
 		perror("Sending: ");
