@@ -80,16 +80,31 @@ int main(int argc, char* argv[]){
 			uint32_t photo_id = 0; char keyword[LINE_S];
 			sscanf(arg, "%u %s", &photo_id, keyword);
 			if(photo_id != 0 && strcmp(keyword, "") != 0){
-				int error = gallery_add_keyword(fd, photo_id, keyword);
-				if(error == 0){
+				int success = gallery_add_keyword(fd, photo_id, keyword);
+				if(success == 1){
 					printf("keyword '%s' added succesfully!\n", keyword);
-				}else if(error == -1){
+				}else if(success == -1){
 					printf("keyword list already full\n");
-				}else if(error == -2){
-					printf("photo with %u doesn't exist in the gallery\n",photo_id);
+				}else if(success == 0){
+					printf("photo with id = %u doesn't exist in the gallery\n",photo_id);
 				}
 			}else{
 				usage("keyadd <photo_id> <keyword>");
+			}
+		}
+		//Command to delete a photo
+		else if(strcmp(command,"delete") == 0){
+			uint32_t photo_id = 0;
+			sscanf(arg, "%u", &photo_id);
+			if(photo_id != 0){
+				int success = gallery_delete_photo(fd, photo_id);
+				if(success == 1){
+					printf("photo with id = %u deleted succesfully!\n", photo_id);
+				}else if(success == 0){
+					printf("photo with id = %u doesn't exist in the gallery\n",photo_id);
+				}
+			}else{
+				usage("delete <photo_id>");
 			}
 		}
 		//None of the above commands

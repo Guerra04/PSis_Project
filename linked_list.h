@@ -4,11 +4,12 @@
 #define MAX_KEYWORDS 20
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h> //uint_'s
 
 /***Definir estrutura que contem dados de cada nó**/
 struct data{
 	char name[SIZE];
-	long id;
+	uint32_t id;
 	char keyword[MAX_KEYWORDS][SIZE];
 	int n_keywords;
 };
@@ -31,9 +32,9 @@ void list_insert(item** root, data K);
 
 void list_append(item** root, item* other);
 
-item* list_remove(item* root, data K);
+item* list_remove(item** root, data K);
 
-item* list_search(item* root, data K);
+item* list_search(item** root, data K);
 
 void list_free(item* root);
 
@@ -46,7 +47,7 @@ void list_sort(item** root);
 void list_split(item* head, item** first_half, item** second_half);
 
 /***** funções abstratas (falta implementação)***/
-data set_data(char* name, long id);
+data set_data(char* name, uint32_t id);
 
 int equal_data(data K1, data K2); //sucesso=1, insucesso=0
 

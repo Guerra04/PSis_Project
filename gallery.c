@@ -140,9 +140,8 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
 
 	message_photo *msg = malloc(sizeof(message_photo));
-	char *id_and_keyword = malloc(MAX_SIZE * sizeof(char));
-	sprintf(id_and_keyword, "%u.%s", id_photo, keyword); //concatenate
-	strcpy(msg->buffer, id_and_keyword);
+	sprintf(msg->buffer, "%u.%s", id_photo, keyword);
+	//Type of adding a keyword
 	msg->type = 2;
 
 	char * stream = malloc(sizeof(message_photo));
@@ -154,8 +153,39 @@ int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
 	}
 
 	//Receive int from peer
-	int error;
-	recv(peer_socket, &error, sizeof(int), 0);
+	int success;
+	if( recv(peer_socket, &success, sizeof(int), 0) == -1){
+		//error receiving data
+		perror("Communication: ");
+		return 0;
+	}
 
-	return error;
+	return success;
+}
+
+int gallery_delete_photo(int peer_socket, uint32_t id_photo){
+
+	message_photo *msg = malloc(sizeof(message_photo));
+	sprintf(msg->buffer, "%u", id_photo);
+	//Type of delete
+	msg->type = 4;
+
+	char * stream = malloc(sizeof(message_photo));
+	memcpy(stream, msg, sizeof(message_photo));
+	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
+		//error sending data
+		perror("Communication: ");
+		return -1;
+	}
+
+	//Receive int from peer
+	int success;
+	if( recv(peer_socket, &success, sizeof(int), 0) == -1){
+		//error receiving data
+		perror("Communication: ");
+		return 0;
+	}
+
+	return success;
+
 }

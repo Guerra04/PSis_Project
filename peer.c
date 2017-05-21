@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h> //uint_'s
 #include "msgs.h"
 #include "linked_list.h"
 
@@ -33,6 +34,8 @@ void *connection(void *client_fd);
 void testing_comm(int fd, message_photo *msg);
 int add_photo(int fd, message_photo *msg);
 void add_keyword(int fd, message_photo *msg);
+void delete_photo(int fd, message_photo *msg);
+
 
 void kill_server(int n) {
 	buff = malloc(sizeof(message_gw));
@@ -175,6 +178,9 @@ void *connection(void *client_fd){
 			case 2:
 				add_keyword(fd, msg);
 				break;
+			case 4:
+				delete_photo(fd, msg);
+				break;
 			default:
 			strcpy(msg->buffer,"Type of message undefined!");
 			printf("%s\n", msg->buffer);
@@ -202,7 +208,7 @@ int add_photo(int fd, message_photo *msg){
 	char name[MAX_SIZE];
 	char ext[10];
 	long size=0;
-	long id=0;
+	uint32_t id=0;
 	char photo_name[MAX_SIZE];
 	//TODO recebe nome mal
 	sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
@@ -216,11 +222,11 @@ int add_photo(int fd, message_photo *msg){
 	//Receive photo
 	char *stream = malloc(size*sizeof(char));
 	if(recv_all(fd, stream, size, 0) <= 0){
-		printf("Error receiving photo\n");
+		perror("Receiving: ");
 		return -1;
 	}
 	//Saving photo in disk
-	sprintf(photo_name, "%lu.%s", id, ext);
+	sprintf(photo_name, "%u.%s", id, ext);
 	FILE *fp;
 	if((fp = fopen( photo_name, "wb")) == NULL){
 		perror("Opening file to write");
@@ -230,8 +236,8 @@ int add_photo(int fd, message_photo *msg){
 	fclose(fp);
 	free(stream);
 	//Sending photo id to client
-	if( send_all(fd, &id, sizeof(long), 0) == -1){
-		printf("Error sending photo\n");
+	if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
+		perror("Sending: ");
 		return -2;
 	}
 	//TODO bcast to other peers
@@ -239,31 +245,54 @@ int add_photo(int fd, message_photo *msg){
 }
 
 void add_keyword(int fd, message_photo *msg){
-	long id;
+	uint32_t id;
 	char keyword[KEYWORD_SIZE];
-	int error;
+	int success;
 
-	sscanf(msg->buffer, "%lu.%s", &id, keyword);
+	sscanf(msg->buffer, "%u.%s", &id, keyword);
 	data K;
 	K.id = id;
-	item* aux = list_search(photo_list, K);
+	item* aux = list_search(&photo_list, K);
 
 	if(aux == NULL){ //photo with sent id doesn't exist
-		error = -2;
+		success = 0;
 	}else{
 		if(aux->K.n_keywords < MAX_KEYWORDS){
 			//TODO bcast to all peers
 			strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
-			error = 0;
+			success = 1;
 		}else{ //keyword list already full
-			error = -1;
+			success = -1;
 		}
 	}
-	send(fd, &error, sizeof(int), 0);
+	if( send_all(fd, &success, sizeof(int), 0) == -1){
+		perror("Sending: ");
+	}
 	return;
 }
 
-data set_data(char* name, long id){
+void delete_photo(int fd, message_photo *msg){
+	uint32_t id;
+	int found;
+
+	sscanf(msg->buffer, "%u", &id);
+	data K;
+	K.id = id;
+	item* aux = list_remove(&photo_list, K);
+
+	if(aux == NULL){ //photo with sent id doesn't exist
+		found = 0;
+	}else{
+		found = 1;
+	}
+	if( send_all(fd, &found, sizeof(int), 0) == -1){
+		perror("Sending: ");
+	}
+	return;
+}
+
+
+data set_data(char* name, uint32_t id){
 	data K;
 	strcpy(K.name, name);
 	K.id = id;
@@ -272,14 +301,11 @@ data set_data(char* name, long id){
 }
 
 int equal_data(data K1, data K2){
-		if(K1.id == K2.id)
-			return 1;
-		else
-			return 0;
+		return K1.id == K2.id;
 }
 
 void print_data(data K){
-	printf("photo: name = %s, id = %lu, KW = ", K.name, K.id);
+	printf("photo: name = %s, id = %u, KW = ", K.name, K.id);
 	for(int i = 0; i < 20; i++)
 		printf("%s ", K.keyword[i]);
 	printf("\n");
