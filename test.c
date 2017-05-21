@@ -16,12 +16,12 @@ int main(){
 		char *buffer;
 		int type;
 	};
-	char name[MAX_SIZE];
-	char ext[10];
-	long size=0;
+	char line[MAX_SIZE];
+	char c[3]={0,0,0};
 
-	sscanf("thisimage.jpg50000","%[^.].%[^01233456789]%lu", name, ext, &size);
-	printf("%s %s %lu\n", name, ext, size);
+	fgets(line,MAX_SIZE, stdin);
+	sscanf(line,"%c %c %c", &c[0], &c[1], &c[2]);
+	printf("%d %d %d\n",  c[0], (unsigned char)c[1], c[2]);
 
 	return 0;
 }

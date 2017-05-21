@@ -185,6 +185,7 @@ void *connection(void *client_fd){
 	printf("---------------------------------------------------\n");
 	printf("closing connectin with client\n");
 	close(fd);
+	return NULL;
 }
 
 void testing_comm(int fd, message_photo *msg){

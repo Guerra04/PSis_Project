@@ -32,9 +32,6 @@ void *connection_client(void *args);
 
 int main(){
 
-
-	socklen_t size_addr;
-	int nbytes;
 	peer_list = list_init();
 
 	//Action of SIGINT
@@ -62,7 +59,6 @@ int main(){
 void *connection_peer(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in peer_addr;
-	int nbytes;
 
 	sock_fd_peer = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock_fd_peer == -1){
@@ -85,7 +81,7 @@ void *connection_peer(void *args){
 	char * stream = malloc(sizeof(message_gw));
 	while(1){
 		socklen_t size_addr = sizeof(peer_addr);
-		nbytes = recvfrom(sock_fd_peer, stream, sizeof(message_gw), 0,
+		recvfrom(sock_fd_peer, stream, sizeof(message_gw), 0,
 				(struct sockaddr *) &peer_addr, &size_addr);
 		memcpy(buff, stream, sizeof(message_gw));
 
@@ -116,7 +112,6 @@ void *connection_peer(void *args){
 void *connection_client(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in client_addr;
-	int nbytes;
 
 	sock_fd_client = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock_fd_client == -1){
@@ -140,7 +135,7 @@ void *connection_client(void *args){
 	char * stream = malloc(sizeof(message_gw));
 	while(1){
 		socklen_t size_addr = sizeof(client_addr);
-		nbytes = recvfrom(sock_fd_client, stream, sizeof(message_gw), 0,
+		recvfrom(sock_fd_client, stream, sizeof(message_gw), 0,
 				(struct sockaddr *) & client_addr, &size_addr);
 		memcpy(buff, stream, sizeof(message_gw));
 
@@ -158,7 +153,7 @@ void *connection_client(void *args){
 		printf("%p\n", aux);
 		DEBUG;
 		memcpy(stream, buff, sizeof(message_gw));
-		nbytes = sendto(sock_fd_client, stream, sizeof(message_gw), 0,
+		sendto(sock_fd_client, stream, sizeof(message_gw), 0,
 			(const struct sockaddr *) &client_addr, sizeof(client_addr));
 		if(buff->type == 0){
 			printf("Client sent to communicate with server %s, port %d\n",

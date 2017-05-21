@@ -1,7 +1,7 @@
 # $@ - left side of :
 # $^ - right side of :
 # $< - first target
-COMPFLAGS = gcc -Wall -c
+COMPFLAGS = gcc -std=gnu99 -Wall -c
 LINKFLAGS = gcc -o
 EXTRAFLAGS = -lpthread
 
@@ -47,4 +47,4 @@ test: test.c
 	$(LINKFLAGS) $@ $<
 
 clean:
-	rm -f gateway peer client *.o
+	rm -f gateway peer client test *.o
