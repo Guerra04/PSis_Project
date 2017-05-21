@@ -95,8 +95,8 @@ item* list_remove(item** root, data K){
 		}
 		aux->next = aux_seg->next;
 		free(aux_seg);
-	}
-	return *root;
+	}//TODO Seg Fault
+	return root;
 }
 
 //Search for item with data K in the list

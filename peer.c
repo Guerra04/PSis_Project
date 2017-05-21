@@ -190,6 +190,7 @@ void *connection(void *client_fd){
 	}
 	printf("---------------------------------------------------\n");
 	printf("closing connectin with client\n");
+	//TODO nao fechar o peer quando o client fecha a ligação
 	close(fd);
 	return NULL;
 }

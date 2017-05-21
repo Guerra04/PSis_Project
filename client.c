@@ -67,7 +67,7 @@ int main(int argc, char* argv[]){
 			if(strcmp(arg,"") != 0){
 				uint32_t photo_id = gallery_add_photo(fd, arg);
 				if(photo_id){
-					printf("Uploading successful: photo_id = %u\n", photo_id);
+					printf("\x1B[32mUploading successful:\x1B[0m photo_id = %u\n", photo_id);
 				}else{
 					printf("Error uploading photo!\n");
 				}
@@ -79,37 +79,37 @@ int main(int argc, char* argv[]){
 		else if(strcmp(command,"keyadd") == 0){
 			uint32_t photo_id = 0; char keyword[LINE_S];
 			sscanf(arg, "%u %s", &photo_id, keyword);
-			if(photo_id != 0 && strcmp(keyword, "") != 0){
+			if(photo_id > 0 && strcmp(keyword, "") != 0){
 				int success = gallery_add_keyword(fd, photo_id, keyword);
 				if(success == 1){
-					printf("keyword '%s' added succesfully!\n", keyword);
+					printf("Keyword '%s' added \x1B[32msuccesfully!\x1B[0m\n", keyword);
 				}else if(success == -1){
-					printf("keyword list already full\n");
+					printf("Keyword list already full\n");
 				}else if(success == 0){
-					printf("photo with id = %u doesn't exist in the gallery\n",photo_id);
+					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
 				}
 			}else{
-				usage("keyadd <photo_id> <keyword>");
+				usage("keyadd <photo_id> <keyword>, [photo_id > 0]");
 			}
 		}
 		//Command to delete a photo
 		else if(strcmp(command,"delete") == 0){
 			uint32_t photo_id = 0;
 			sscanf(arg, "%u", &photo_id);
-			if(photo_id != 0){
+			if(photo_id > 0){
 				int success = gallery_delete_photo(fd, photo_id);
 				if(success == 1){
-					printf("photo with id = %u deleted succesfully!\n", photo_id);
+					printf("Photo with id = %u deleted \x1B[32msuccesfully!\x1B[0m\n", photo_id);
 				}else if(success == 0){
-					printf("photo with id = %u doesn't exist in the gallery\n",photo_id);
+					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
 				}
 			}else{
-				usage("delete <photo_id>");
+				usage("delete <photo_id>, [photo_id > 0]");
 			}
 		}
 		//None of the above commands
 		else{
-			printf("Invalid command!\n");
+			printf("\x1B[31mInvalid command!\x1B[0m\n");
 		}
 
 	}
@@ -139,7 +139,7 @@ void test(){
 }
 
 void usage(char *message){
-	printf("Usage: %s\n", message);
+	printf("\x1B[31mUsage: \x1B[0m%s\n", message);
 }
 
 void kill_server(int n) {

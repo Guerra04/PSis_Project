@@ -11,6 +11,8 @@
 #include "gallery.h"
 #include "msgs.h"
 
+#define DEBUG printf("aqui\n")
+
 #define DEBUG_PEER(addr,port) printf("peer: addr - %s , port - %d\n", addr,port);
 
 int gallery_connect(char * host, uint32_t port){
@@ -122,7 +124,7 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 
 	//Receive photo identifier from Peer
 	uint32_t photo_id = 0;
-	if( recv_all(sock_peer, &photo_id, sizeof(long), 0) == -1 ){
+	if( recv_all(sock_peer, &photo_id, sizeof(uint32_t), 0) == -1 ){
 		//error receiving data
 		perror("Communication: ");
 		return 0;
