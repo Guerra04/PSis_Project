@@ -48,7 +48,8 @@ int main(int argc, char* argv[]){
 	printf("---------------------------------------------------\n");
 	while(1){
 		//Menu message
-		printf("Please enter your command\n");
+		printf("---------------------------------------------------");
+		printf("\nPlease enter your command\n");
 		printf("[%s]\n\n", COMMANDS);
 
 		//(Re)initializing
@@ -83,13 +84,35 @@ int main(int argc, char* argv[]){
 				int success = gallery_add_keyword(fd, photo_id, keyword);
 				if(success == 1){
 					printf("Keyword '%s' added \x1B[32msuccesfully!\x1B[0m\n", keyword);
+				}else if(success == 0){
+					printf("Communication error\n");
 				}else if(success == -1){
 					printf("Keyword list already full\n");
-				}else if(success == 0){
+				}else if(success == -2){
 					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
 				}
 			}else{
 				usage("keyadd <photo_id> <keyword>, [photo_id > 0]");
+			}
+		}
+		//Command to search for a photo
+		else if(strcmp(command, "search") == 0){
+			if(strcmp(arg,"") != 0){
+				uint32_t *id_photos;
+				int length = gallery_search_photo(fd, arg, &id_photos);
+				if(length > 0){
+					printf("%d photo(s) found with keyword '%s'!\n", length, arg);
+					printf("ID(s) of the photo(s):\n");
+					for(int i = 0; i < length; i++){
+						printf("---%d: %u\n", i+1, id_photos[i]);
+					}
+				}else if(length == 0){
+					printf("No photo found with keyword '%s'\n", arg);
+				}else if(length == -1){
+					printf("Communication error\n");
+				}
+			}else{
+				usage("search <keyword>");
 			}
 		}
 		//Command to delete a photo
