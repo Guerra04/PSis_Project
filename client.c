@@ -11,7 +11,7 @@
 #include "msgs.h"
 #include "gallery.h"
 #define LINE_S 100
-#define COMMANDS " add, keyadd, search, delete, getname, download"
+#define COMMANDS " add, keyadd, search, delete, getname, download, quit"
 #define DEBUG printf("aqui\n")
 
 int fd;
@@ -96,6 +96,7 @@ int main(int argc, char* argv[]){
 			}
 		}
 		//Command to search for a photo
+		//TODO meter cores :)
 		else if(strcmp(command, "search") == 0){
 			if(strcmp(arg,"") != 0){
 				uint32_t *id_photos;
@@ -129,6 +130,27 @@ int main(int argc, char* argv[]){
 			}else{
 				usage("delete <photo_id>, [photo_id > 0]");
 			}
+		}
+		//Command to get a photo name
+		else if(strcmp(command, "getname") == 0){
+			uint32_t photo_id = 0;
+			sscanf(arg, "%u", &photo_id);
+			if(photo_id > 0){
+				char *photo_name;
+				int success = gallery_get_photo_name(fd, photo_id, &photo_name);
+				if(success == 1){
+					printf("Photo with id = %u has name: %s\n", photo_id, photo_name);
+				}else if(success == 0){
+					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
+				}
+			}else{
+				usage("getname <photo_id>, [photo_id > 0]");
+			}
+		}
+		//Commmand to quit
+		else if(strcmp(command, "quit") == 0){
+			printf("Bye bye!\n"); //TODO por frase bacana
+			break;
 		}
 		//None of the above commands
 		else{

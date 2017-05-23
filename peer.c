@@ -38,6 +38,7 @@ int add_photo(int fd, message_photo *msg);
 void add_keyword(int fd, message_photo *msg);
 void search_photo(int fd, message_photo *meg);
 void delete_photo(int fd, message_photo *msg);
+void get_photo_name(int fd, message_photo *msg);
 int search_keyword(item *photo, char *keyword);
 
 
@@ -188,6 +189,9 @@ void *connection(void *client_fd){
 			case 4:
 				delete_photo(fd, msg);
 				break;
+			case 5:
+				get_photo_name(fd, msg);
+				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
 				printf("%s\n", msg->buffer);
@@ -310,6 +314,9 @@ void search_photo(int fd, message_photo *meg){
 		perror("Sending: ");
 	}
 
+	if(n_photos == 0){
+		return;
+	}
 	//transform list into an array
 	uint32_t *id_photos = malloc(n_photos * sizeof(uint32_t));
 	for(int i = 0; i < n_photos; i++){
@@ -332,6 +339,7 @@ void delete_photo(int fd, message_photo *msg){
 	sscanf(msg->buffer, "%u", &id);
 	data K;
 	K.id = id;
+	//TODO mutex
 	item* aux = list_remove(&photo_list, K);
 
 	if(aux == NULL){ //photo with sent id doesn't exist
@@ -342,6 +350,33 @@ void delete_photo(int fd, message_photo *msg){
 	}
 	if( send_all(fd, &found, sizeof(int), 0) == -1){
 		perror("Sending: ");
+	}
+	return;
+}
+
+void get_photo_name(int fd, message_photo *msg){
+	uint32_t id;
+
+	sscanf(msg->buffer, "%u", &id);
+	data K = set_data("", id); //aux data to search
+
+	pthread_mutex_lock(&list_lock);
+	item *aux = list_search(&photo_list, K);
+	pthread_mutex_unlock(&list_lock);
+
+	int length = 0;
+	if(aux != NULL) //photo exists
+		length = strlen(aux->K.name) + 1; //strlen doesn't count with '\0'
+	//send length of the photo name
+	if( send_all(fd, &length, sizeof(int), 0) == -1){
+		perror("Sending: ");
+	}
+
+	//send photo name
+	if(length > 0){
+		if( send_all(fd, aux->K.name, length+1, 0) == -1){
+			perror("Sending: ");
+		}
 	}
 	return;
 }
