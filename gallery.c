@@ -152,6 +152,7 @@ int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
 	//Type of adding a keyword
 	msg->type = 2;
 
+	//TODO free stream' em todas as funcs da API
 	char * stream = malloc(sizeof(message_photo));
 	memcpy(stream, msg, sizeof(message_photo));
 	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
@@ -283,4 +284,55 @@ int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name
 		}
 		return 1;
 	}
+}
+
+/*******************************************************************************
+Returns:
+	- 1: photo downloaded succesfully
+	- 0: photo does not exist
+	- -1: communication error
+*******************************************************************************/
+int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
+
+	message_photo *msg = malloc(sizeof(message_photo));
+	sprintf(msg->buffer, "%u", id_photo);
+	//Type of gallery_get_photo_name
+	msg->type = 6;
+
+	//send photo id and type
+	char * stream = malloc(sizeof(message_photo));
+	memcpy(stream, msg, sizeof(message_photo));
+	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
+		//error sending data
+		perror("Communication: ");
+		return -1;
+	}
+	//Receive photo size
+	long size = 0;
+	if( recv(peer_socket, &size, sizeof(long), 0) == -1){
+		//error receiving data
+		perror("Communication: ");
+		return -1;
+	}
+	if(size == 0) //photo doesn't exist
+		return 0;
+
+	//Receive photo
+	char *photo = malloc(size * sizeof(char));
+	if(recv_all(peer_socket, photo, size, 0) <= 0){
+		perror("Receiving: ");
+		return -1;
+	}
+
+	//Write photo in file to store it in disk
+	FILE *fp;
+	if((fp = fopen(file_name, "wb")) == NULL){
+		perror("Opening file to write");
+		exit(-1);
+	}
+	fwrite(photo, size, 1, fp);//TODO writes all at once?
+	fclose(fp);
+	free(photo);
+
+	return 1;
 }

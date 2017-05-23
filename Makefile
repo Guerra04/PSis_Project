@@ -13,6 +13,9 @@ receiver: peer.o linked_list.o msgs.o
 sender: gallery.o client.o msgs.o
 	$(LINKFLAGS) Sender/client $^ $(EXTRAFLAGS)
 
+sender: gallery.o client.o msgs.o
+	$(LINKFLAGS) Sender2/client $^ $(EXTRAFLAGS)
+
 gateway: gateway.o ring_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
