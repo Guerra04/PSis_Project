@@ -25,6 +25,7 @@ typedef struct message_gw{
 *   2 - add keyword
 *	3 - search photo
 *	4 - delete photo
+*	5 - get photo name
 ************************************/
 typedef struct message_photo{
 	char buffer[MAX_SIZE];

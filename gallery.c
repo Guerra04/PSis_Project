@@ -242,3 +242,45 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
 	return success;
 
 }
+
+/*******************************************************************************
+Returns:
+	- 1: photo exists and name was retrieved
+	- 0: photo doesn't exists
+	- -1: communication error
+*******************************************************************************/
+int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name){
+
+	message_photo *msg = malloc(sizeof(message_photo));
+	sprintf(msg->buffer, "%u", id_photo);
+	//Type of gallery_get_photo_name
+	msg->type = 5;
+
+	char * stream = malloc(sizeof(message_photo));
+	memcpy(stream, msg, sizeof(message_photo));
+	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
+		//error sending data
+		perror("Communication: ");
+		return -1;
+	}
+
+	//Receive the length of the name
+	int length = 0;
+	if( recv(peer_socket, &length, sizeof(int), 0) == -1){
+		//error receiving data
+		perror("Communication: ");
+		return -1;
+	}
+
+	if(length == 0){ //no photos with said id
+		return 0;
+	}else{
+		(*photo_name) = malloc(length * sizeof(char));
+		if( recv(peer_socket, (*photo_name), length*sizeof(char), 0) == -1){
+			//error receiving data
+			perror("Communication: ");
+			return -1;
+		}
+		return 1;
+	}
+}
