@@ -18,6 +18,7 @@
 #define PORT 3000 + getpid()
 
 #define KEYWORD_SIZE 100
+#define MAX_PHOTOS 100
 
 #define DEBUG printf("aqui\n")
 //int client_fd;
@@ -28,13 +29,16 @@ message_gw *buff;
 message_photo * msg;
 struct sigaction *handler;
 item *photo_list = NULL;
+pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void strupr(char * line);
 void *connection(void *client_fd);
 void testing_comm(int fd, message_photo *msg);
 int add_photo(int fd, message_photo *msg);
 void add_keyword(int fd, message_photo *msg);
+void search_photo(int fd, message_photo *meg);
 void delete_photo(int fd, message_photo *msg);
+int search_keyword(item *photo, char *keyword);
 
 
 void kill_server(int n) {
@@ -178,12 +182,15 @@ void *connection(void *client_fd){
 			case 2:
 				add_keyword(fd, msg);
 				break;
+			case 3:
+				search_photo(fd, msg);
+				break;
 			case 4:
 				delete_photo(fd, msg);
 				break;
 			default:
-			strcpy(msg->buffer,"Type of message undefined!");
-			printf("%s\n", msg->buffer);
+				strcpy(msg->buffer,"Type of message undefined!");
+				printf("%s\n", msg->buffer);
 		}
 		//ECHO of the reply
 		printf("Sent message: %s\n", msg->buffer);
@@ -219,7 +226,9 @@ int add_photo(int fd, message_photo *msg){
 	//Saving photo characteristics in list
 	data photo;
 	photo = set_data(photo_name, id);
+	pthread_mutex_lock(&list_lock);
 	list_insert(&photo_list, photo);
+	pthread_mutex_unlock(&list_lock);
 	//Receive photo
 	char *stream = malloc(size*sizeof(char));
 	if(recv_all(fd, stream, size, 0) <= 0){
@@ -253,20 +262,64 @@ void add_keyword(int fd, message_photo *msg){
 	sscanf(msg->buffer, "%u.%s", &id, keyword);
 	data K;
 	K.id = id;
+	pthread_mutex_lock(&list_lock);
 	item* aux = list_search(&photo_list, K);
+	pthread_mutex_unlock(&list_lock);
 
 	if(aux == NULL){ //photo with sent id doesn't exist
-		success = 0;
+		success = -2;
 	}else{
 		if(aux->K.n_keywords < MAX_KEYWORDS){
 			//TODO bcast to all peers
+			pthread_mutex_lock(&list_lock);
 			strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
+			pthread_mutex_unlock(&list_lock);
 			success = 1;
 		}else{ //keyword list already full
 			success = -1;
 		}
 	}
 	if( send_all(fd, &success, sizeof(int), 0) == -1){
+		perror("Sending: ");
+	}
+	return;
+}
+
+void search_photo(int fd, message_photo *meg){
+	char keyword[KEYWORD_SIZE];
+	//TODO verificar scanfs?
+	memcpy(keyword, msg->buffer, KEYWORD_SIZE);
+
+	int n_photos = 0;
+	item *list = list_init(); //list to store photos
+	pthread_mutex_lock(&list_lock);
+	item *photo = photo_list;
+	while(photo != NULL){
+		if(search_keyword(photo, keyword)){
+			data K = set_data("", photo->K.id);
+			list_insert(&list, K);
+			n_photos++;
+		}
+		photo = photo->next;
+	}
+	pthread_mutex_unlock(&list_lock);
+
+	//send length of list
+	//TODO se houver merda aqui, vai ser foda no cliente
+	if( send_all(fd, &n_photos, sizeof(int), 0) == -1){
+		perror("Sending: ");
+	}
+
+	//transform list into an array
+	uint32_t *id_photos = malloc(n_photos * sizeof(uint32_t));
+	for(int i = 0; i < n_photos; i++){
+		item *aux = list_first(&list);
+		id_photos[i] = aux->K.id;
+		free(aux);
+	}
+
+	//send array
+	if( send_all(fd, id_photos, n_photos * sizeof(uint32_t), 0) == -1){
 		perror("Sending: ");
 	}
 	return;
@@ -293,6 +346,18 @@ void delete_photo(int fd, message_photo *msg){
 	return;
 }
 
+/*******************************************************************************
+Returns:
+	- 1: if keyword exists in photo
+	- 0: otherwise
+*******************************************************************************/
+int search_keyword(item *photo, char *keyword){
+	for(int i = 0; i < photo->K.n_keywords; i++){
+		if(strcmp(photo->K.keyword[i], keyword) == 0)
+			return 1;
+	}
+	return 0;
+}
 
 data set_data(char* name, uint32_t id){
 	data K;

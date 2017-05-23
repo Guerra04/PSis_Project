@@ -138,7 +138,13 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 
 }
 
-
+/*******************************************************************************
+Returns:
+	- 1: success
+	- 0: communication error
+	- -1: keyword list full
+	- -2: photo doesn't exist
+*******************************************************************************/
 int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
 
 	message_photo *msg = malloc(sizeof(message_photo));
@@ -164,6 +170,51 @@ int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
 
 	return success;
 }
+
+/*******************************************************************************
+Returns:
+	- >0: length of photo list with argument keyword
+	- 0: no photo with argument keyword
+	- -1: communication error
+*******************************************************************************/
+int gallery_search_photo(int peer_socket, char * keyword, uint32_t ** id_photos){
+
+	message_photo *msg = malloc(sizeof(message_photo));
+	sprintf(msg->buffer, "%s", keyword);
+	//Type of search
+	msg->type = 3;
+	//TODO maybe por isto como uma função do msgs.c ja que se usa bue
+	char * stream = malloc(sizeof(message_photo));
+	memcpy(stream, msg, sizeof(message_photo));
+	//send keyword to peer
+	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
+		//error sending data
+		perror("Communication: ");
+		return -1;
+	}
+
+	//recieve length of the list of photos
+	int length = 0;
+	if( recv(peer_socket, &length, sizeof(int), 0) == -1){
+		//error receiving data
+		perror("Communication: ");
+		return -1;
+	}
+
+	if(length == 0){ //no photos with said keyword
+		return 0;
+	}
+
+	//receive list of photos
+	(*id_photos) = malloc(length * sizeof(uint32_t));
+	if( recv(peer_socket, (*id_photos), length*sizeof(uint32_t), 0) == -1){
+		//error receiving data
+		perror("Communication: ");
+		return -1;
+	}
+	return length;
+}
+
 
 int gallery_delete_photo(int peer_socket, uint32_t id_photo){
 
