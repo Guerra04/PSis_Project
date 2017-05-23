@@ -147,6 +147,23 @@ int main(int argc, char* argv[]){
 				usage("getname <photo_id>, [photo_id > 0]");
 			}
 		}
+		//Command to get a photo
+		else if(strcmp(command, "download") == 0){
+			uint32_t photo_id = 0; char file_name[LINE_S];
+			sscanf(arg, "%u %s", &photo_id, file_name);
+			if(photo_id > 0 && strcmp(file_name, "") != 0){
+				int success = gallery_get_photo(fd, photo_id, file_name);
+				if(success == 1){
+					printf("Photo with id = '%u' downloaded \x1B[32msuccesfully!\x1B[0m to file '%s'\n", photo_id, file_name);
+				}else if(success == 0){
+					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
+				}else if(success == -1){
+					printf("Communication error\n");
+				}
+			}else{
+				usage("downlaod <photo_id> <file_name>, [photo_id > 0]");
+			}
+		}
 		//Commmand to quit
 		else if(strcmp(command, "quit") == 0){
 			printf("Bye bye!\n"); //TODO por frase bacana

@@ -39,6 +39,7 @@ void add_keyword(int fd, message_photo *msg);
 void search_photo(int fd, message_photo *meg);
 void delete_photo(int fd, message_photo *msg);
 void get_photo_name(int fd, message_photo *msg);
+void get_photo(int fd, message_photo *msg);
 int search_keyword(item *photo, char *keyword);
 
 
@@ -191,6 +192,9 @@ void *connection(void *client_fd){
 				break;
 			case 5:
 				get_photo_name(fd, msg);
+				break;
+			case 6:
+				get_photo(fd, msg);
 				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
@@ -379,6 +383,46 @@ void get_photo_name(int fd, message_photo *msg){
 		}
 	}
 	return;
+}
+
+void get_photo(int fd, message_photo *msg){
+
+	uint32_t id;
+
+	sscanf(msg->buffer, "%u", &id);
+	data K = set_data("", id); //aux data to search
+
+	pthread_mutex_lock(&list_lock);
+	item *aux = list_search(&photo_list, K);
+	pthread_mutex_unlock(&list_lock);
+
+	FILE *fp;
+	long size = 0;
+	if(aux != NULL){
+		char file_name[MAX_SIZE];
+		char ext[10];
+		sscanf(aux->K.name, "%*[^.].%s", ext);
+		sprintf(file_name, "%u.%s", id, ext);
+
+		if((fp = fopen(file_name, "rb")) == NULL){
+			//Invalid filename
+			perror("Filename: ");
+		}
+		fseek(fp, 0, SEEK_END); // jumps to the end of the file
+		size = ftell(fp);  // gets the current byte offset in the file
+		rewind(fp);
+	}
+	//Send size of the photo
+	if(send_all(fd, &size, sizeof(long), 0) == -1){
+		perror("Sending: ");
+	}
+	char *photo = malloc((size)*sizeof(char));
+	fread(photo, size, 1, fp); //reads the whole file at once
+	fclose(fp);
+
+	if(send_all(fd, photo, size, 0) == -1){
+		perror("Sending: ");
+	}
 }
 
 /*******************************************************************************
