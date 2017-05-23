@@ -18,6 +18,7 @@ int sock_fd_client;
 struct sigaction *handler;
 item* peer_list;
 pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
+uint32_t photo_id = 0;
 
 void kill_server(int n) {
 	list_free(peer_list);
@@ -59,7 +60,7 @@ int main(){
 void *connection_peer(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in peer_addr;
-
+	//Creation of socket
 	sock_fd_peer = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock_fd_peer == -1){
 		perror("socket: ");
@@ -78,24 +79,23 @@ void *connection_peer(void *args){
 	printf(" socket created and binded \n Ready to receive messages\n");
 
 	message_gw *buff = malloc(sizeof(message_gw));
-	char * stream = malloc(sizeof(message_gw));
 	while(1){
-		socklen_t size_addr = sizeof(peer_addr);
-		recvfrom(sock_fd_peer, stream, sizeof(message_gw), 0,
-				(struct sockaddr *) &peer_addr, &size_addr);
-		memcpy(buff, stream, sizeof(message_gw));
-
+		//Receives and unstreams message from peer
+		if(recv_and_unstream_gw(sock_fd_peer, &peer_addr, buff) == -1)
+			exit(1);
+		printf("buff: type = %d\n", buff->type);
 		if(buff->type == 0){
-				data K;
-				K.port = buff->port;
-				strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
-				pthread_mutex_lock(&list_lock);
-				list_append(&peer_list, K);
-				pthread_mutex_unlock(&list_lock);
-				printf("Server %s with port %d added to list\n", K.addr, K.port);
-				//Send acknowledgment to peer
-				sendto(sock_fd_peer, stream, sizeof(message_gw), 0,
-					(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
+			data K;
+			K.port = buff->port;
+			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
+			pthread_mutex_lock(&list_lock);
+			list_append(&peer_list, K);
+			pthread_mutex_unlock(&list_lock);
+			printf("Server %s with port %d \x1B[32madded to list\x1B[0m\n", K.addr, K.port);
+			//Send acknowledgment to peer
+			int ack=1;
+			sendto(sock_fd_peer, &ack, sizeof(int), 0,
+				(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
 		}else if(buff->type == -1){
 			data K;
 			K.port = buff->port;
@@ -103,6 +103,11 @@ void *connection_peer(void *args){
 			pthread_mutex_lock(&list_lock);
 			peer_list = list_remove(peer_list, K);
 			pthread_mutex_unlock(&list_lock);
+			printf("Server %s with port %d r\x1B[31memoved from list\x1B[0m\n", K.addr, K.port);
+		}else if(buff->type == 1){
+			++photo_id;
+			sendto(sock_fd_peer, &photo_id, sizeof(uint32_t), 0,
+				(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
 		}else{
 			printf("That's the wrong number\n");
 		}
@@ -132,12 +137,9 @@ void *connection_client(void *args){
 
 	message_gw *buff = malloc(sizeof(message_gw));
 
-	char * stream = malloc(sizeof(message_gw));
 	while(1){
-		socklen_t size_addr = sizeof(client_addr);
-		recvfrom(sock_fd_client, stream, sizeof(message_gw), 0,
-				(struct sockaddr *) & client_addr, &size_addr);
-		memcpy(buff, stream, sizeof(message_gw));
+		if(recv_and_unstream_gw(sock_fd_client, &client_addr, buff) == -1)
+			exit(1);
 
 		item* aux = list_first(&peer_list);
 		if(aux != NULL){
@@ -150,11 +152,10 @@ void *connection_client(void *args){
 		}else{
 			buff->type = 1;
 		}
-		printf("%p\n", aux);
-		DEBUG;
-		memcpy(stream, buff, sizeof(message_gw));
-		sendto(sock_fd_client, stream, sizeof(message_gw), 0,
-			(const struct sockaddr *) &client_addr, sizeof(client_addr));
+		//printf("%p\n", aux);
+		if(stream_and_send_gw(sock_fd_client, &client_addr, buff->addr,
+			buff->port, buff->type) == -1)
+				exit(1);
 		if(buff->type == 0){
 			printf("Client sent to communicate with server %s, port %d\n",
 				buff->addr, buff->port);

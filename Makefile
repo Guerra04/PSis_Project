@@ -5,7 +5,7 @@ COMPFLAGS = gcc -std=gnu99 -Wall -c
 LINKFLAGS = gcc -o
 EXTRAFLAGS = -lpthread
 
-all: gateway peer client gallery.o receiver sender
+all: gateway peer client gallery.o receiver sender sender2
 
 receiver: peer.o linked_list.o msgs.o
 	$(LINKFLAGS) Receiver/peer $^ $(EXTRAFLAGS)
@@ -13,14 +13,14 @@ receiver: peer.o linked_list.o msgs.o
 sender: gallery.o client.o msgs.o
 	$(LINKFLAGS) Sender/client $^ $(EXTRAFLAGS)
 
-sender: gallery.o client.o msgs.o
+sender2: gallery.o client.o msgs.o
 	$(LINKFLAGS) Sender2/client $^ $(EXTRAFLAGS)
 
-gateway: gateway.o ring_list.o
+gateway: gateway.o ring_list.o msgs.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-gateway.o: gateway.c msgs.h linked_list.h
-	$(COMPFLAGS) $<
+gateway.o: gateway.c msgs.c linked_list.c
+	$(COMPFLAGS) $^
 
 linked_list.o: linked_list.c linked_list.h
 	$(COMPFLAGS) $<

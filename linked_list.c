@@ -71,12 +71,12 @@ void list_append(item** root, item* other){
 }
 
 //Removes element with data K from the list
-item* list_remove(item** root, data K){
+int list_remove(item** root, data K){//CHANGED returns a "boolean"
 	item *aux, *aux_seg;
 
 	if((*root) == NULL){
-		perror("Already an empty list!\n");
-		return NULL;
+		printf("Already an empty list\n");
+		return 0;
 	}
 
 	aux = *root;
@@ -85,18 +85,22 @@ item* list_remove(item** root, data K){
 		(*root) = (*root)->next;
 		free(aux);
 	}else{
+		if(aux_seg == NULL){
+			printf("No data K found in remove\n");
+			return 0;
+		}
 		while(!equal_data(aux_seg->K, K)){
 			if(aux_seg->next == NULL){
-				perror("No data K found in remove!\n");
-				return NULL;
+				printf("No data K found in remove\n");
+				return 0;
 			}
 			aux = aux->next;
 			aux_seg = aux_seg->next;
 		}
 		aux->next = aux_seg->next;
 		free(aux_seg);
-	}//TODO Seg Fault
-	return root;
+	}
+	return 1;
 }
 
 //Search for item with data K in the list

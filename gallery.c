@@ -8,6 +8,7 @@
 #include <unistd.h> //close
 #include <stdint.h> //uint_'s
 #include <string.h> //memcpy
+#include <netinet/in.h>
 #include "gallery.h"
 #include "msgs.h"
 
@@ -15,7 +16,7 @@
 
 #define DEBUG_PEER(addr,port) printf("peer: addr - %s , port - %d\n", addr,port);
 
-int gallery_connect(char * host, uint32_t port){
+int gallery_connect(char * host, in_port_t port){
 	/****************Gateway communication***************/
 	//Creation of UDP socket
 	int sock_fd_gw= socket(AF_INET, SOCK_DGRAM, 0);
@@ -29,25 +30,17 @@ int gallery_connect(char * host, uint32_t port){
 	server_gw_addr.sin_port = htons(port);
 	inet_aton(host, &server_gw_addr.sin_addr);
 	//Send request of Peer to Gateway
-	message_gw *buff = malloc(sizeof(message_gw));
-	buff->type = 0;
-	char *stream = malloc(sizeof(message_gw));
-	memcpy(stream, buff, sizeof(message_gw));
-	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
-		(const struct sockaddr *) &server_gw_addr, sizeof(server_gw_addr));
+	if(stream_and_send_gw(sock_fd_gw, &server_gw_addr, "", 0, 0)==-1)
+		exit(1);
 
 	//sets timeout of recv(...)
-	struct timeval tv;
-	tv.tv_sec = 5;  // 5 seconds timeout
-	tv.tv_usec = 0;
-	setsockopt(sock_fd_gw, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
-
-	recv(sock_fd_gw, stream, sizeof(message_gw), 0);
+	set_recv_timeout(sock_fd_gw, 5, 0);
+	message_gw *buff = malloc(sizeof(message_gw));
+	recv_and_unstream_gw(sock_fd_gw, &server_gw_addr, buff);
 	if(errno == EAGAIN || errno == EWOULDBLOCK){
 		//timeout occured
 		return -1;
 	}
-	memcpy(buff, stream, sizeof(message_gw));
 	printf("Received gateway info\n");
 	close(sock_fd_gw);
 	if( buff->type == 1){
@@ -69,7 +62,6 @@ int gallery_connect(char * host, uint32_t port){
 	inet_aton(buff->addr, &server_addr.sin_addr);
 	DEBUG_PEER(buff->addr, buff->port);
 	free(buff);
-	free(stream);
 
 	if( -1 == connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr))){
 		perror("Connecting to Peer: ");
@@ -97,20 +89,13 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	rewind(fp);
 
 	//Send photo size and name
-	message_photo *msg = malloc(sizeof(message_photo));
 	char *name_and_size = malloc(MAX_SIZE*sizeof(char));
 	char temp[20];
 	sprintf(temp, "%lu",file_size); // file_size to char
 	name_and_size = strcat(file,temp);
-	strcpy(msg->buffer, name_and_size);
-	msg->type = 1;
-	char * stream = malloc(sizeof(message_photo));
-	memcpy(stream, msg, sizeof(message_photo));
-	if( send_all(sock_peer, stream, sizeof(message_photo), 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
+	if(stream_and_send_photo(sock_peer, name_and_size, 1) == -1)
 		return 0;
-	}
+
 
 	//Send photo
 	char *buffer = (char *)malloc((file_size)*sizeof(char));
@@ -146,20 +131,10 @@ Returns:
 	- -2: photo doesn't exist
 *******************************************************************************/
 int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
-
-	message_photo *msg = malloc(sizeof(message_photo));
-	sprintf(msg->buffer, "%u.%s", id_photo, keyword);
-	//Type of adding a keyword
-	msg->type = 2;
-
-	//TODO free stream' em todas as funcs da API
-	char * stream = malloc(sizeof(message_photo));
-	memcpy(stream, msg, sizeof(message_photo));
-	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
+	char message[MAX_SIZE];
+	sprintf(message, "%u.%s", id_photo, keyword);
+	if( stream_and_send_photo(peer_socket, message, 2) == -1)
 		return 0;
-	}
 
 	//Receive int from peer
 	int success;
@@ -180,19 +155,10 @@ Returns:
 *******************************************************************************/
 int gallery_search_photo(int peer_socket, char * keyword, uint32_t ** id_photos){
 
-	message_photo *msg = malloc(sizeof(message_photo));
-	sprintf(msg->buffer, "%s", keyword);
-	//Type of search
-	msg->type = 3;
-	//TODO maybe por isto como uma função do msgs.c ja que se usa bue
-	char * stream = malloc(sizeof(message_photo));
-	memcpy(stream, msg, sizeof(message_photo));
-	//send keyword to peer
-	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
+	char message[MAX_SIZE];
+	sprintf(message, "%s", keyword);
+	if( stream_and_send_photo(peer_socket, message, 3) == -1)
 		return -1;
-	}
 
 	//recieve length of the list of photos
 	int length = 0;
@@ -219,18 +185,10 @@ int gallery_search_photo(int peer_socket, char * keyword, uint32_t ** id_photos)
 
 int gallery_delete_photo(int peer_socket, uint32_t id_photo){
 
-	message_photo *msg = malloc(sizeof(message_photo));
-	sprintf(msg->buffer, "%u", id_photo);
-	//Type of delete
-	msg->type = 4;
-
-	char * stream = malloc(sizeof(message_photo));
-	memcpy(stream, msg, sizeof(message_photo));
-	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
+	char message[MAX_SIZE];
+	sprintf(message, "%u", id_photo);
+	if( stream_and_send_photo(peer_socket, message, 4) == -1)
 		return -1;
-	}
 
 	//Receive int from peer
 	int success;
@@ -252,18 +210,10 @@ Returns:
 *******************************************************************************/
 int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name){
 
-	message_photo *msg = malloc(sizeof(message_photo));
-	sprintf(msg->buffer, "%u", id_photo);
-	//Type of gallery_get_photo_name
-	msg->type = 5;
-
-	char * stream = malloc(sizeof(message_photo));
-	memcpy(stream, msg, sizeof(message_photo));
-	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
+	char message[MAX_SIZE];
+	sprintf(message, "%u", id_photo);
+	if( stream_and_send_photo(peer_socket, message, 5) == -1)
 		return -1;
-	}
 
 	//Receive the length of the name
 	int length = 0;
@@ -294,19 +244,10 @@ Returns:
 *******************************************************************************/
 int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
 
-	message_photo *msg = malloc(sizeof(message_photo));
-	sprintf(msg->buffer, "%u", id_photo);
-	//Type of gallery_get_photo_name
-	msg->type = 6;
-
-	//send photo id and type
-	char * stream = malloc(sizeof(message_photo));
-	memcpy(stream, msg, sizeof(message_photo));
-	if( send_all(peer_socket, stream, sizeof(message_photo), 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
+	char message[MAX_SIZE];
+	sprintf(message, "%u", id_photo);
+	if( stream_and_send_photo(peer_socket, message, 6) == -1)
 		return -1;
-	}
 	//Receive photo size
 	long size = 0;
 	if( recv(peer_socket, &size, sizeof(long), 0) == -1){

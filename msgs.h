@@ -5,6 +5,7 @@
 #define KNOWN_PORT_CLIENT 3001
 
 //server
+//type 1 - fetch photo id
 //type 0 - thread active
 //type -1 - thread delete
 //client
@@ -36,3 +37,13 @@ typedef struct message_photo{
 int send_all(int socket, const void *buffer, size_t length, int flags);
 
 int recv_all(int socket, void *buffer, size_t max_length, int flags);
+
+int stream_and_send_gw(int fd,struct sockaddr_in *other_addr, char *addr, in_port_t port, int type);
+
+int stream_and_send_photo(int fd, char *buffer, int type);
+
+void set_recv_timeout(int sock_fd, int secs, int usecs);
+
+int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff);
+
+int recv_and_unstream_photo(int sock_fd, message_photo *buff);

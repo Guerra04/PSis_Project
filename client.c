@@ -89,7 +89,7 @@ int main(int argc, char* argv[]){
 				}else if(success == -1){
 					printf("Keyword list already full\n");
 				}else if(success == -2){
-					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
+					printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 				}
 			}else{
 				usage("keyadd <photo_id> <keyword>, [photo_id > 0]");
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]){
 				if(success == 1){
 					printf("Photo with id = %u deleted \x1B[32msuccesfully!\x1B[0m\n", photo_id);
 				}else if(success == 0){
-					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
+					printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 				}
 			}else{
 				usage("delete <photo_id>, [photo_id > 0]");
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]){
 				if(success == 1){
 					printf("Photo with id = %u has name: %s\n", photo_id, photo_name);
 				}else if(success == 0){
-					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
+					printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 				}
 			}else{
 				usage("getname <photo_id>, [photo_id > 0]");
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]){
 				if(success == 1){
 					printf("Photo with id = '%u' downloaded \x1B[32msuccesfully!\x1B[0m to file '%s'\n", photo_id, file_name);
 				}else if(success == 0){
-					printf("Photo with id = %u doesn't exist in the gallery\n",photo_id);
+					printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 				}else if(success == -1){
 					printf("Communication error\n");
 				}
