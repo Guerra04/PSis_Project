@@ -19,7 +19,7 @@ sender2: gallery.o client.o msgs.o
 gateway: gateway.o ring_list.o msgs.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-gateway.o: gateway.c msgs.c linked_list.c
+gateway.o: gateway.c msgs.c ring_list.c
 	$(COMPFLAGS) $^
 
 linked_list.o: linked_list.c linked_list.h

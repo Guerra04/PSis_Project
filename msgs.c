@@ -128,3 +128,28 @@ int recv_ring_udp(int sock_fd, item_r **peer_list){
 	}
 	return 0;
 }
+
+int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list){
+	//Counts elements in peer_list
+	int size = ring_count(peer_list);
+	sendto(sock_fd, &size, sizeof(int), 0,
+		(const struct sockaddr *) other_addr, sizeof(*other_addr));
+	//Then sends list, if it isn't empty
+	if(size!=0){
+		//Vectorizes list
+		data_r d_send[size];
+		for(int i=0; i < size; i++){
+			d_send[i] = peer_list->K;
+			peer_list = peer_list->next;
+		}
+		//Streams and sends peer_list
+		char *stream = malloc(size*sizeof(data_r));
+		memcpy(stream, d_send, size*sizeof(data_r));
+		if(sendto(sock_fd, stream, size*sizeof(data_r), 0,
+			(const struct sockaddr *) other_addr, sizeof(*other_addr)) == -1){
+			perror("List send: ");
+			return -1;
+		}
+	}
+	return 0;
+}

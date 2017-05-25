@@ -210,3 +210,17 @@ item_r* ring_dering(item_r *root){
 	}
 	return root;
 }
+
+int ring_count(item_r *root){
+	int count=0;
+	if(root==NULL)
+		return 0;
+
+	item_r* aux = root;
+	count++;
+	while(aux->seg != root){
+		count++;
+		aux = aux->next;
+	}
+	return count;
+}

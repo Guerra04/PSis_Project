@@ -90,15 +90,18 @@ int main(int argc, char* argv[]){
 	//sets timeout of recv(...)
 	set_recv_timeout(sock_fd_gw, 5, 0);
 	//Waits for list of peers
-	recv_ring_udp(sock_fd_gw, &peer_list);
-	//int ack;
-	//recv(sock_fd_gw, &ack, sizeof(int), 0);
+	if( recv_ring_udp(sock_fd_gw, &peer_list) == -1)
+		exit(1);
+
 	if(errno == EAGAIN || errno == EWOULDBLOCK){
 		//timeout occured
 		printf("[ABORTING] The Gateway is not online\n");
 		exit(1);
 	}
-
+	printf("*********Peers list***********\n");
+	ring_print(peer_list);
+	printf("******************************\n");
+	
 	free(buff);
 	//close(sock_fd_gw);
 

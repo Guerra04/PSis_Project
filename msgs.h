@@ -6,10 +6,10 @@
 
 #include "ring_list.h"
 
-//server
+//gateway
 //type 1 - fetch photo id
-//type 0 - thread active
-//type -1 - thread delete
+//type 0 - add peer
+//type -1 - delete peer
 //client
 //type 0 - ok
 //type 1 - no peers available
@@ -52,3 +52,5 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff);
 
 int recv_ring_udp(int sock_fd, item_r **peer_list);
+
+int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list);

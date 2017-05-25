@@ -52,7 +52,6 @@ int main(){
 
 	while(!sigint);
 	ring_free(peer_list);
-	DEBUG;
 	close(sock_fd_peer);
 	close(sock_fd_client);
 	free(handler);
@@ -88,6 +87,7 @@ void *connection_peer(void *args){
 			exit(1);
 		printf("buff: type = %d\n", buff->type);
 		if(buff->type == 0){
+			//Save new peer in list
 			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -95,10 +95,12 @@ void *connection_peer(void *args){
 			ring_append(&peer_list, K);
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d \x1B[32madded to list\x1B[0m\n", K.addr, K.port);
-			//Send acknowledgment to peer
-			int ack=1;
-			sendto(sock_fd_peer, &ack, sizeof(int), 0,
-				(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
+			//Send peer_list to new_peer
+			if( sendto(sock_fd_peer, &peer_addr, peer_list) == -1)
+				exit(1);
+			printf("*********Peers list***********\n");
+			ring_print(peer_list);
+			printf("******************************\n");
 		}else if(buff->type == -1){
 			DEBUG;
 			data_r K;
