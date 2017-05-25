@@ -36,7 +36,7 @@ void *connection(void *client_fd);
 void testing_comm(int fd, message_photo *msg);
 int add_photo(int fd, message_photo *msg);
 void add_keyword(int fd, message_photo *msg);
-void search_photo(int fd, message_photo *msg);
+void search_photo(int fd, message_photo *meg);
 void delete_photo(int fd, message_photo *msg);
 void get_photo_name(int fd, message_photo *msg);
 void get_photo(int fd, message_photo *msg);
@@ -44,9 +44,16 @@ int search_keyword(item *photo, char *keyword);
 
 
 void kill_server(int n) {
+	buff = malloc(sizeof(message_gw));
 	//Message to send to gateway letting it know that this peer terminated
-	if(stream_and_send_gw(sock_fd_gw, &server_addr, ADDR, PORT, -1) == -1)
-		exit(1);
+	strcpy(buff->addr, ADDR);
+	buff->type = -1;
+	buff->port = PORT;
+	char * stream = malloc(sizeof(message_gw));
+	memcpy(stream, buff, sizeof(message_gw));
+	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
+		(const struct sockaddr *) &server_addr, sizeof(server_addr));
+
 	close(sock_fd);
 	close(sock_fd_gw);
 	free(buff);
@@ -56,6 +63,8 @@ void kill_server(int n) {
 }
 
 int main(int argc, char* argv[]){
+	struct sockaddr_in server_addr;
+	//struct sockaddr_in client_gw_addr;
 	struct sockaddr_in local_addr;
 	struct sockaddr_in client_addr;
 	int err;
@@ -80,15 +89,25 @@ int main(int argc, char* argv[]){
 	server_addr.sin_port = htons(KNOWN_PORT_PEER);
 	inet_aton(KNOWN_IP, &server_addr.sin_addr);
 	//Sending to gatway this peer's information
-	if(stream_and_send_gw(sock_fd_gw, &server_addr, ADDR, PORT, 0) == -1)
-		exit(1);
+	buff = malloc(sizeof(message_gw));
+	strcpy(buff->addr, ADDR);
+	buff->type = 0;
+	buff->port = PORT;
+	printf("Server addr %s, server port %d, message type %d\n",
+		buff->addr, buff->port,  buff->type);
+	char * stream = malloc(sizeof(message_gw));
+	memcpy(stream, buff, sizeof(message_gw));
+	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
+		(const struct sockaddr *) &server_addr, sizeof(server_addr));
 
 	/*****Waits for acknowledgment of gateway****/
 	//sets timeout of recv(...)
-	set_recv_timeout(sock_fd_gw, 5, 0);
-	//Waits for acknowledgment of gateway
-	int ack;
-	recv(sock_fd_gw, &ack, sizeof(int), 0);
+	struct timeval tv;
+	tv.tv_sec = 5;  // 5 seconds timeout
+	tv.tv_usec = 0;
+	setsockopt(sock_fd_gw, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+
+	recv(sock_fd_gw, stream, sizeof(message_gw), 0);
 	if(errno == EAGAIN || errno == EWOULDBLOCK){
 		//timeout occured
 		printf("[ABORTING] The Gateway is not online\n");
@@ -96,6 +115,7 @@ int main(int argc, char* argv[]){
 	}
 
 	free(buff);
+	free(stream);
 	//close(sock_fd_gw);
 
 /*****************************SOCKET TCP*****************************/
@@ -149,9 +169,11 @@ void *connection(void *client_fd){
 	//printf("Accepted one connection from %s \n", inet_ntoa(client_addr.sin_addr));
 	printf("Accepted one connection\n");
 	printf("---------------------------------------------------\n");
+	char *stream = malloc(sizeof(message_photo));
 	int fd = *(int*)client_fd;
-	while(recv_and_unstream_photo(fd, msg) != EOF){
+	while(recv(fd, stream, sizeof(message_photo), 0) != EOF){
 		printf("Received message from client:\n");
+		memcpy(msg, stream, sizeof(message_photo));
 		switch(msg->type){
 			case 0:
 				testing_comm(fd, msg);
@@ -194,7 +216,7 @@ void testing_comm(int fd, message_photo *msg){
 	printf("String converted\n");
 	char *stream = malloc(sizeof(message_photo));
 	memcpy(stream, msg, sizeof(message_photo));
-	send(fd, stream, sizeof(message_photo), 0);
+	/*int nbytes = */send(fd, stream, sizeof(message_photo), 0);
 	free(stream);
 }
 
@@ -204,45 +226,33 @@ int add_photo(int fd, message_photo *msg){
 	long size=0;
 	uint32_t id=0;
 	char photo_name[MAX_SIZE];
+	//TODO recebe nome mal
 	sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
-
-	//Receive photo
-	char *bytestream = malloc(size*sizeof(char));
-	if(recv_all(fd, bytestream, size, 0) <= 0){
-		perror("Receiving: ");
-		return -1;
-	}
-
-	//Asks Gateway for a new id
-	if(stream_and_send_gw(sock_fd_gw, &server_addr, ADDR, PORT, 1) == -1)
-		exit(1);
-
-	//Receives id from the gateway
-	socklen_t size_addr = sizeof(server_addr);
-	if(recvfrom(sock_fd_gw, &id, sizeof(uint32_t), 0, (struct sockaddr *) &server_addr, &size_addr) == -1){
-		perror("wtf: ");
-		exit(1);
-	}
-
+	//TODO calc id of photo
+	id = 144;
+	sprintf(photo_name, "%s.%s", name, ext);
 	//Saving photo characteristics in list
 	data photo;
-	sprintf(photo_name, "%s.%s", name, ext);
 	photo = set_data(photo_name, id);
 	pthread_mutex_lock(&list_lock);
 	list_insert(&photo_list, photo);
 	pthread_mutex_unlock(&list_lock);
-
-	list_print(photo_list);
+	//Receive photo
+	char *stream = malloc(size*sizeof(char));
+	if(recv_all(fd, stream, size, 0) <= 0){
+		perror("Receiving: ");
+		return -1;
+	}
 	//Saving photo in disk
-	sprintf(photo_name, "%u", id); //CHANGED gravar o nome so com o id, pq depois é mais facil apagar
+	sprintf(photo_name, "%u.%s", id, ext);
 	FILE *fp;
 	if((fp = fopen( photo_name, "wb")) == NULL){
 		perror("Opening file to write");
 		exit(-1);
 	}
-	fwrite(bytestream, size, 1, fp);//TODO writes all at once?
+	fwrite(stream, size, 1, fp);//TODO writes all at once?
 	fclose(fp);
-	free(bytestream);
+	free(stream);
 	//Sending photo id to client
 	if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
 		perror("Sending: ");
@@ -283,7 +293,7 @@ void add_keyword(int fd, message_photo *msg){
 	return;
 }
 
-void search_photo(int fd, message_photo *msg){
+void search_photo(int fd, message_photo *meg){
 	char keyword[KEYWORD_SIZE];
 	//TODO verificar scanfs?
 	memcpy(keyword, msg->buffer, KEYWORD_SIZE);
@@ -328,23 +338,23 @@ void search_photo(int fd, message_photo *msg){
 
 void delete_photo(int fd, message_photo *msg){
 	uint32_t id;
+	int found;
 
 	sscanf(msg->buffer, "%u", &id);
 	data K;
 	K.id = id;
 	//TODO mutex
-	int found = list_remove(&photo_list, K);
-	if(found != 0){ //photo with sent id doesn't exist
-		//Removes photo from disk
-		char file_name[50];
-		sprintf(file_name,"%u", id);
-		unlink(file_name);
+	item* aux = list_remove(&photo_list, K);
+
+	if(aux == NULL){ //photo with sent id doesn't exist
+		found = 0;
+	}else{
+		found = 1;
 		//TODO bcast to all peers
 	}
 	if( send_all(fd, &found, sizeof(int), 0) == -1){
 		perror("Sending: ");
 	}
-	list_print(photo_list);
 	return;
 }
 
@@ -442,9 +452,8 @@ int equal_data(data K1, data K2){
 
 void print_data(data K){
 	printf("photo: name = %s, id = %u, KW = ", K.name, K.id);
-	//TODO primeiro inicializar keywords
-	/*for(int i = 0; i < 20; i++)
-		printf("%s ", K.keyword[i]);*/
+	for(int i = 0; i < 20; i++)
+		printf("%s ", K.keyword[i]);
 	printf("\n");
 	return;
 }
