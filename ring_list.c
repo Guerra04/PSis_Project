@@ -218,7 +218,7 @@ int ring_count(item_r *root){
 
 	item_r* aux = root;
 	count++;
-	while(aux->seg != root){
+	while(aux->next != root){
 		count++;
 		aux = aux->next;
 	}

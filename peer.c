@@ -101,7 +101,7 @@ int main(int argc, char* argv[]){
 	printf("*********Peers list***********\n");
 	ring_print(peer_list);
 	printf("******************************\n");
-	
+
 	free(buff);
 	//close(sock_fd_gw);
 
