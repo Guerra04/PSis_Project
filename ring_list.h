@@ -4,52 +4,52 @@
 #include <stdlib.h>
 
 /***Definir estrutura que contem dados de cada nó**/
-struct data{
+struct data_r{
 	char addr[20];
 	int port;
 };
 /**************************************************/
-struct item{
-	struct data K;
-	struct item* next;
-    struct item* prev;
+struct item_r{
+	struct data_r K;
+	struct item_r* next;
+    struct item_r* prev;
 };
 
-typedef struct data data;
-typedef struct item item;
+typedef struct data_r data_r;
+typedef struct item_r item_r;
 
-item* list_init();
+item_r* ring_init();
 
-item* list_first(item** root);
+item_r* ring_first(item_r** root);
 
-void list_push(item** root, item* other);
+void ring_push(item_r** root, item_r* other);
 
-void list_append(item** root, data K);
+void ring_append(item_r** root, data_r K);
 
-item* list_remove(item* root, data K);
+item_r* ring_remove(item_r* root, data_r K);
 
-item* list_search(item* root, data K);
+item_r* ring_search(item_r* root, data_r K);
 
-void list_free(item* root);
+void ring_free(item_r* root);
 
-void list_print(item* root);
+void ring_print(item_r* root);
 
-item* lists_concatenate(item* list1, item* list2);
+item_r* rings_concatenate(item_r* list1, item_r* list2);
 
-void list_sort(item** root);
+void ring_sort(item_r** root);
 
-void list_split(item* head, item** first_half, item** second_half);
+void ring_split(item_r* head, item_r** first_half, item_r** second_half);
 
-item* list_dering(item *root);
+item_r* ring_dering(item_r *root);
 
 /***** funções abstratas (falta implementação)***/
-data set_data(int x, int y, int z);
+data_r set_data_r(int x, int y, int z);
 
-int equal_data(data K1, data K2); //sucesso=1, insucesso=0
+int equal_data_r(data_r K1, data_r K2); //sucesso=1, insucesso=0
 
-void print_data(data K);
+void print_data_r(data_r K);
 
-item* sort(item* list1, item* list2);
+item_r* sort_r(item_r* list1, item_r* list2);
 /*************************************************/
 
 #endif //_LINKED_LIST_LIB_H_

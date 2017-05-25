@@ -4,6 +4,8 @@
 #define KNOWN_PORT_PEER 3000
 #define KNOWN_PORT_CLIENT 3001
 
+#include "ring_list.h"
+
 //server
 //type 1 - fetch photo id
 //type 0 - thread active
@@ -49,4 +51,4 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff);
 
-int recv_list_udp(int sock_fd, item_r **peer_list);
+int recv_ring_udp(int sock_fd, item_r **peer_list);

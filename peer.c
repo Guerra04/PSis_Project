@@ -13,6 +13,7 @@
 #include <stdint.h> //uint_'s
 #include "msgs.h"
 #include "linked_list.h"
+#include "ring_list.h"
 
 #define ADDR "127.0.0.1"
 #define PORT 3000 + getpid()
@@ -89,7 +90,7 @@ int main(int argc, char* argv[]){
 	//sets timeout of recv(...)
 	set_recv_timeout(sock_fd_gw, 5, 0);
 	//Waits for list of peers
-	recv_list_udp(sock_fd_gw, &peer_list);
+	recv_ring_udp(sock_fd_gw, &peer_list);
 	//int ack;
 	//recv(sock_fd_gw, &ack, sizeof(int), 0);
 	if(errno == EAGAIN || errno == EWOULDBLOCK){

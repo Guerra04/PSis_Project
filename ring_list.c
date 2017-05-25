@@ -1,13 +1,13 @@
 #include "ring_list.h"
 #include <omp.h>
 
-item* list_init(){
+item_r* ring_init(){
 	return NULL;
 }
 
 //Removes first element of the list
-item* list_first(item** root){
-	item *first;
+item_r* ring_first(item_r** root){
+	item_r *first;
 
 	first = (*root);
 	if((*root)==NULL){
@@ -26,7 +26,7 @@ item* list_first(item** root){
 }
 
 //Puts an element in the beginning of the list
-void list_push(item** root, item* other){
+void ring_push(item_r** root, item_r* other){
 
     if(*root == NULL){
         *root = other;
@@ -43,23 +43,23 @@ void list_push(item** root, item* other){
 }
 
 //Creates an element and puts it in the beginning of the list
-void list_append(item** root, data K){
-	item *new;
+void ring_append(item_r** root, data_r K){
+	item_r *new;
 
-	new = (item*)malloc(sizeof(item));
+	new = (item_r*)malloc(sizeof(item_r));
 	if(new == NULL){
-		perror("Erro na alocação de new item\n");
+		perror("Erro na alocação de new item_r\n");
 		exit(-1);
 	}
 
 	new->K = K;
-	list_push(root, new);
+	ring_push(root, new);
 	return;
 }
 
 
-item* list_remove(item* root, data K){
-	item *aux, *aux_seg;
+item_r* ring_remove(item_r* root, data_r K){
+	item_r *aux, *aux_seg;
 
 	if(root == NULL){
 		perror("Already an empty list!\n");
@@ -68,15 +68,15 @@ item* list_remove(item* root, data K){
 
 	aux = root;
 	aux_seg = aux->next;
-	if(equal_data(root->K, K)){
+	if(equal_data_r(root->K, K)){
 		root = root->next;
 		root->prev = aux->prev;
 		aux->prev->next = root;
 		free(aux);
 	}else{
-		while(!equal_data(aux_seg->K, K)){
+		while(!equal_data_r(aux_seg->K, K)){
 			if(aux_seg->next == root){
-				perror("No data K found in remove!\n");
+				perror("No data_r K found in remove!\n");
 				exit(-1);
 			}
 			aux = aux->next;
@@ -88,8 +88,8 @@ item* list_remove(item* root, data K){
 	}
 	return root;
 }
-//Removes element with data K from the list
-/*item* list_remove(item* root, data K){
+//Removes element with data_r K from the list
+/*item_r* ring_remove(item_r* root, data_r K){
 
     if(root == NULL){
 		perror("Already an empty list!\n");
@@ -97,16 +97,16 @@ item* list_remove(item* root, data K){
 	}
 
     if(root->next == root){
-        if(equal_data(root->K, K)){
+        if(equal_data_r(root->K, K)){
             free(root);
             return NULL;
         }else{
-            perror("No data K found in remove(1 element)!\n");
+            perror("No data_r K found in remove(1 element)!\n");
             exit(-1);
         }
     }
 
-    item *front = root, *back = root->prev;
+    item_r *front = root, *back = root->prev;
     int front_found = 0, back_found = 0, not_found = 0;
     #pragma omp parallel sections shared(front, back, front_found, back_found, not_found)
     {
@@ -114,7 +114,7 @@ item* list_remove(item* root, data K){
         {
             while(1){
                 if(!front_found && !back_found && !not_found){
-                    if(equal_data(front->K, K)){
+                    if(equal_data_r(front->K, K)){
                         front_found = 1;
                     }else{
 						//just on the front so it won't prevent from seeing all elements
@@ -139,7 +139,7 @@ item* list_remove(item* root, data K){
         {
             while(1){
                 if(!front_found && !back_found && !not_found){
-                    if(equal_data(back->K, K)){
+                    if(equal_data_r(back->K, K)){
                         back_found = 1;
                     }else{
                         if(back != front && back->prev != front){
@@ -163,7 +163,7 @@ item* list_remove(item* root, data K){
     else if(back_found)
         front = back;
     else{
-        perror("No data K found in remove (multiple elements)!\n");
+        perror("No data_r K found in remove (multiple elements)!\n");
         exit(-1);
     }
 
@@ -174,9 +174,9 @@ item* list_remove(item* root, data K){
     return root;
 }*/
 
-//Search for item with data K in the list
+//Search for item_r with data_r K in the list
 /*Em principio ta MAL, só nao alterei pq nao usamos
-item* list_search(item* root, data K){
+item_r* ring_search(item_r* root, data_r K){
 
     if(root == NULL){
 		printf("Search cancelled, empty list, returning NULL\n");
@@ -184,7 +184,7 @@ item* list_search(item* root, data K){
 	}
 
     if(root->next == NULL){
-        if(equal_data(root->K, K))
+        if(equal_data_r(root->K, K))
             return root;
         else{
             printf("Element not found, returning NULL\n");
@@ -192,7 +192,7 @@ item* list_search(item* root, data K){
         }
     }
 
-    item *front = root, *back = root->prev;
+    item_r *front = root, *back = root->prev;
     int front_found = 0, back_found = 0;
 	#pragma omp parallel sections shared(front, back, front_found, back_found)
     {
@@ -200,7 +200,7 @@ item* list_search(item* root, data K){
         {
             while(1){
                 if(!front_found && !back_found){
-                    if(equal_data(front->K, K)){
+                    if(equal_data_r(front->K, K)){
                         front_found = 1;
                     }else{
                         front = front->next;
@@ -214,7 +214,7 @@ item* list_search(item* root, data K){
         {
             while(1){
                 if(!front_found && !back_found){
-                    if(equal_data(back->K, K)){
+                    if(equal_data_r(back->K, K)){
                         back_found = 1;
                     }else{
                         if(back != front && back->prev != front)
@@ -240,7 +240,7 @@ item* list_search(item* root, data K){
 
 //Free all the elements of a list
 /*ACHO QUE NAO DÁ PARA PARALELO
-void list_free(item* root){
+void ring_free(item_r* root){
 
     if(root == NULL){
 		printf("Empty list already\n");
@@ -252,7 +252,7 @@ void list_free(item* root){
         return;
     }
 
-    item *tail = root->prev, *front = root, *back = tail;
+    item_r *tail = root->prev, *front = root, *back = tail;
 
     #pragma omp parallel sections shared(front, back, root, tail)
     {
@@ -277,9 +277,9 @@ void list_free(item* root){
 */
 
 //Free all the elements of a list
-void list_free(item* root){
-	item *aux;
-	root = list_dering(root);
+void ring_free(item_r* root){
+	item_r *aux;
+	root = ring_dering(root);
 	while(root != NULL){
 		aux = root;
 		root = root->next;
@@ -289,27 +289,27 @@ void list_free(item* root){
 }
 
 //Print all the elements of a list
-void list_print(item* root){
-	item *aux;
-	data k;
+void ring_print(item_r* root){
+	item_r *aux;
+	data_r k;
 
 	if(root == NULL){
 		printf("Empty List!\n");
 		return;
 	}
-	print_data(root->K);
+	print_data_r(root->K);
 	aux = root->next;
 	while(aux != root){
 		k = aux->K;
-		print_data(k);
+		print_data_r(k);
 		aux = aux->next;
 	}
 	return;
 }
 
 //Appends one list to the end of another list
-item* lists_concatenate(item* list1, item* list2){
-	item *aux;
+item_r* rings_concatenate(item_r* list1, item_r* list2){
+	item_r *aux;
 
 	if(list1 == NULL && list2 == NULL){
 		return NULL;
@@ -328,10 +328,10 @@ item* lists_concatenate(item* list1, item* list2){
 }
 //Recursively divide the list in half and sort the sublists
 //Needs to be called in a parallel section
-void list_sort(item** root){
-	item* first_half;
-	item* second_half;
-	item* tmphead = *root;
+void ring_sort(item_r** root){
+	item_r* first_half;
+	item_r* second_half;
+	item_r* tmphead = *root;
 
 	/*Empty list or with only one element*/
 	if((tmphead == NULL) || (tmphead->next == NULL)){
@@ -339,23 +339,23 @@ void list_sort(item** root){
 	}
 
 	/*create the 2 sublists*/
-	list_split(tmphead, &first_half, &second_half);
+	ring_split(tmphead, &first_half, &second_half);
 
 	/*recursively sort the 2 sublists*/
-	list_sort(&first_half);
-	list_sort(&second_half);
+	ring_sort(&first_half);
+	ring_sort(&second_half);
 
 	/*sort and merge the sublists together*/
-	*root = sort(first_half, second_half);
+	*root = sort_r(first_half, second_half);
 	//return;
 }
 
 /*Divides the list in half
 Uses 1 pointer that advances 2 elements (fast) and
 1 pointer that only advances 1(slow)*/
-void list_split(item* head, item** first_half, item** second_half){
-	item* slow;
-	item* fast;
+void ring_split(item_r* head, item_r** first_half, item_r** second_half){
+	item_r* slow;
+	item_r* fast;
 
 	/*Empty list or with only one element*/
 	if((head == NULL) || (head->next == NULL)){
@@ -380,7 +380,7 @@ void list_split(item* head, item** first_half, item** second_half){
 	}
 }
 
-item* list_dering(item *root){
+item_r* ring_dering(item_r *root){
 
 	if(root != NULL){
 		root->prev->next = NULL;

@@ -16,7 +16,7 @@
 int sock_fd_peer;
 int sock_fd_client;
 struct sigaction *handler;
-item* peer_list;
+item_r* peer_list;
 int sigint = 0;
 pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 uint32_t photo_id = 0;
@@ -30,7 +30,7 @@ void *connection_client(void *args);
 
 int main(){
 
-	peer_list = list_init();
+	peer_list = ring_init();
 
 	//Action of SIGINT
 	handler = malloc(sizeof(handler));
@@ -51,7 +51,7 @@ int main(){
 	}
 
 	while(!sigint);
-	list_free(peer_list);
+	ring_free(peer_list);
 	DEBUG;
 	close(sock_fd_peer);
 	close(sock_fd_client);
@@ -88,11 +88,11 @@ void *connection_peer(void *args){
 			exit(1);
 		printf("buff: type = %d\n", buff->type);
 		if(buff->type == 0){
-			data K;
+			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
 			pthread_mutex_lock(&list_lock);
-			list_append(&peer_list, K);
+			ring_append(&peer_list, K);
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d \x1B[32madded to list\x1B[0m\n", K.addr, K.port);
 			//Send acknowledgment to peer
@@ -101,11 +101,11 @@ void *connection_peer(void *args){
 				(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
 		}else if(buff->type == -1){
 			DEBUG;
-			data K;
+			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
 			pthread_mutex_lock(&list_lock);
-			peer_list = list_remove(peer_list, K);
+			peer_list = ring_remove(peer_list, K);
 			DEBUG;
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
@@ -146,13 +146,13 @@ void *connection_client(void *args){
 		if(recv_and_unstream_gw(sock_fd_client, &client_addr, buff) == -1)
 			exit(1);
 
-		item* aux = list_first(&peer_list);
+		item_r* aux = ring_first(&peer_list);
 		if(aux != NULL){
 			buff->type = 0;
 			strcpy(buff->addr, aux->K.addr);
 			buff->port = aux->K.port;
 			pthread_mutex_lock(&list_lock);
-			list_append(&peer_list, aux->K);
+			ring_append(&peer_list, aux->K);
 			pthread_mutex_unlock(&list_lock);
 		}else{
 			buff->type = 1;
@@ -169,18 +169,18 @@ void *connection_client(void *args){
 }
 
 //Dummy functions
-int equal_data(data K1, data K2){
+int equal_data_r(data_r K1, data_r K2){
 		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
 			return 1;
 		else
 			return 0;
 }
 
-void print_data(data K){
+void print_data_r(data_r K){
 	printf("addr = %s, port = %d\n", K.addr, K.port);
 	return;
 }
 
-item* sort(item* list1, item* list2){
+item_r* sort(item_r* list1, item_r* list2){
 	return NULL;
 }

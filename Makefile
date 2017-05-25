@@ -7,7 +7,7 @@ EXTRAFLAGS = -lpthread
 
 all: gateway peer client gallery.o receiver sender sender2
 
-receiver: peer.o linked_list.o msgs.o
+receiver: peer.o linked_list.o msgs.o ring_list.o
 	$(LINKFLAGS) Receiver/peer $^ $(EXTRAFLAGS)
 
 sender: gallery.o client.o msgs.o
@@ -28,10 +28,10 @@ linked_list.o: linked_list.c linked_list.h
 ring_list.o: ring_list.c ring_list.h
 	$(COMPFLAGS) $<
 
-peer: peer.o linked_list.o msgs.o
+peer: peer.o linked_list.o msgs.o ring_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-peer.o: peer.c msgs.c linked_list.c
+peer.o: peer.c msgs.c linked_list.c ring_list.c
 	$(COMPFLAGS) $^
 
 client: gallery.o client.o msgs.o
