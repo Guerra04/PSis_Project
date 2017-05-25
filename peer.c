@@ -50,6 +50,7 @@ void kill_server(int n) {
 		exit(1);
 	close(sock_fd);
 	close(sock_fd_gw);
+	list_free(photo_list);
 	free(buff);
 	free(msg);
 	free(handler);
@@ -127,13 +128,11 @@ int main(int argc, char* argv[]){
 	while(1){
 		int client_fd;
 		client_fd = accept(sock_fd, (struct sockaddr *) & client_addr, &size_addr);
-		DEBUG;
 		pthread_t thread_id;
 
-		if(pthread_create(&thread_id, NULL, connection, &client_fd) == 0){
-			printf("success\n");
+		if(pthread_create(&thread_id, NULL, connection, &client_fd) != 0){
+			perror("Creating thread: ");
 		}
-
 	}
 	close(sock_fd);
 	exit(0);
@@ -175,6 +174,11 @@ void *connection(void *client_fd){
 				break;
 			case 6:
 				get_photo(fd, msg);
+				break;
+			case -1:
+				printf("Client broke connenction!\n");
+				close(fd);
+				pthread_exit(NULL);
 				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
