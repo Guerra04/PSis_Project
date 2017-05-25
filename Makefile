@@ -10,16 +10,16 @@ all: gateway peer client gallery.o receiver sender sender2
 receiver: peer.o linked_list.o msgs.o ring_list.o
 	$(LINKFLAGS) Receiver/peer $^ $(EXTRAFLAGS)
 
-sender: gallery.o client.o msgs.o
+sender: gallery.o client.o msgs.o ring_list.o
 	$(LINKFLAGS) Sender/client $^ $(EXTRAFLAGS)
 
-sender2: gallery.o client.o msgs.o
+sender2: gallery.o client.o msgs.o ring_list.o
 	$(LINKFLAGS) Sender2/client $^ $(EXTRAFLAGS)
 
 gateway: gateway.o ring_list.o msgs.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-gateway.o: gateway.c msgs.c linked_list.c
+gateway.o: gateway.c msgs.c ring_list.c
 	$(COMPFLAGS) $^
 
 linked_list.o: linked_list.c linked_list.h
@@ -34,7 +34,7 @@ peer: peer.o linked_list.o msgs.o ring_list.o
 peer.o: peer.c msgs.c linked_list.c ring_list.c
 	$(COMPFLAGS) $^
 
-client: gallery.o client.o msgs.o
+client: gallery.o client.o msgs.o ring_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
 client.o: client.c msgs.c gallery.c
@@ -43,8 +43,8 @@ client.o: client.c msgs.c gallery.c
 gallery.o: gallery.c gallery.h msgs.c
 	$(COMPFLAGS) $< msgs.c
 
-msgs.o: msgs.c msgs.h
-	$(COMPFLAGS) $<
+msgs.o: msgs.c msgs.h ring_list.c
+	$(COMPFLAGS) $< ring_list.c
 
 test: test.c
 	$(LINKFLAGS) $@ $<

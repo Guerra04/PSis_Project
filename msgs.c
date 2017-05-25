@@ -12,6 +12,7 @@
 #include <time.h>
 #include "msgs.h"
 
+
 int send_all(int socket, const void *buffer, size_t length, int flags){
 	ssize_t nbytes;
 	const char *p = buffer;
@@ -127,4 +128,21 @@ int recv_ring_udp(int sock_fd, item_r **peer_list){
 		}
 	}
 	return 0;
+}
+
+//Dummy functions
+int equal_data_r(data_r K1, data_r K2){
+		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
+			return 1;
+		else
+			return 0;
+}
+
+void print_data_r(data_r K){
+	printf("addr = %s, port = %d\n", K.addr, K.port);
+	return;
+}
+
+item_r* sort_r(item_r* list1, item_r* list2){
+	return NULL;
 }

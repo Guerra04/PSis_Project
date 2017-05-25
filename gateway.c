@@ -51,7 +51,7 @@ int main(){
 	}
 
 	while(!sigint);
-	
+
 	ring_free(peer_list);
 	close(sock_fd_peer);
 	close(sock_fd_client);
@@ -105,7 +105,7 @@ void *connection_peer(void *args){
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
 			pthread_mutex_lock(&list_lock);
-			peer_list = ring_remove(peer_list, K);
+			ring_remove(&peer_list, K);
 			DEBUG;
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
@@ -166,21 +166,4 @@ void *connection_client(void *args){
 				buff->addr, buff->port);
 		}
 	}
-}
-
-//Dummy functions
-int equal_data_r(data_r K1, data_r K2){
-		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
-			return 1;
-		else
-			return 0;
-}
-
-void print_data_r(data_r K){
-	printf("addr = %s, port = %d\n", K.addr, K.port);
-	return;
-}
-
-item_r* sort(item_r* list1, item_r* list2){
-	return NULL;
 }
