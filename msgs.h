@@ -47,3 +47,5 @@ void set_recv_timeout(int sock_fd, int secs, int usecs);
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff);
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff);
+
+int recv_list_udp(int sock_fd, item_r **peer_list);
