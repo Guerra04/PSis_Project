@@ -51,8 +51,8 @@ int main(){
 	}
 
 	while(!sigint);
+	
 	ring_free(peer_list);
-	DEBUG;
 	close(sock_fd_peer);
 	close(sock_fd_client);
 	free(handler);
