@@ -26,7 +26,7 @@ void ring_push(item_r** root, item_r* other);
 
 void ring_append(item_r** root, data_r K);
 
-item_r* ring_remove(item_r* root, data_r K);
+int ring_remove(item_r** root, data_r K);
 
 item_r* ring_search(item_r* root, data_r K);
 

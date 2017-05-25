@@ -58,26 +58,35 @@ void ring_append(item_r** root, data_r K){
 }
 
 
-item_r* ring_remove(item_r* root, data_r K){
+int ring_remove(item_r** root, data_r K){
 	item_r *aux, *aux_seg;
 
-	if(root == NULL){
+	if((*root) == NULL){
 		perror("Already an empty list!\n");
 		exit(-1);
 	}
 
-	aux = root;
+	aux = (*root);
 	aux_seg = aux->next;
-	if(equal_data_r(root->K, K)){
-		root = root->next;
-		root->prev = aux->prev;
-		aux->prev->next = root;
-		free(aux);
+	if(equal_data_r((*root)->K, K)){
+		if((*root) == aux_seg){
+			free((*root));
+			(*root) = NULL;
+		}else{
+			(*root) = (*root)->next;
+			(*root)->prev = aux->prev;
+			aux->prev->next = (*root);
+			free(aux);
+		}
 	}else{
+		if(aux_seg == (*root)){
+			printf("No data K found in remove\n");
+			return 0;
+		}
 		while(!equal_data_r(aux_seg->K, K)){
-			if(aux_seg->next == root){
+			if(aux_seg->next == (*root)){
 				perror("No data_r K found in remove!\n");
-				exit(-1);
+				return 0;
 			}
 			aux = aux->next;
 			aux_seg = aux_seg->next;
@@ -86,195 +95,8 @@ item_r* ring_remove(item_r* root, data_r K){
 		aux_seg->next->prev = aux;
 		free(aux_seg);
 	}
-	return root;
+	return 1;
 }
-//Removes element with data_r K from the list
-/*item_r* ring_remove(item_r* root, data_r K){
-
-    if(root == NULL){
-		perror("Already an empty list!\n");
-		exit(-1);
-	}
-
-    if(root->next == root){
-        if(equal_data_r(root->K, K)){
-            free(root);
-            return NULL;
-        }else{
-            perror("No data_r K found in remove(1 element)!\n");
-            exit(-1);
-        }
-    }
-
-    item_r *front = root, *back = root->prev;
-    int front_found = 0, back_found = 0, not_found = 0;
-    #pragma omp parallel sections shared(front, back, front_found, back_found, not_found)
-    {
-        #pragma omp section
-        {
-            while(1){
-                if(!front_found && !back_found && !not_found){
-                    if(equal_data_r(front->K, K)){
-                        front_found = 1;
-                    }else{
-						//just on the front so it won't prevent from seeing all elements
-						if(front != back){
-                        	front = front->next;
-							if(front == root){
-								not_found = 1;
-								break;
-							}
-						}else{
-							//just on the front so it won't prevent from seeing all elements
-							not_found = 1;
-							break;
-						}
-                    }
-                }else{
-                    break;
-                }
-            }
-        }
-        #pragma omp section
-        {
-            while(1){
-                if(!front_found && !back_found && !not_found){
-                    if(equal_data_r(back->K, K)){
-                        back_found = 1;
-                    }else{
-                        if(back != front && back->prev != front){
-                            back = back->prev;
-							if(back == root->prev){
-								not_found = 1;
-								break;
-							}
-						}else{
-							break;
-						}
-                    }
-                }else{
-                    break;
-                }
-            }
-        }
-    }
-    if(front_found)
-        back = front;
-    else if(back_found)
-        front = back;
-    else{
-        perror("No data_r K found in remove (multiple elements)!\n");
-        exit(-1);
-    }
-
-    back = back->prev;
-    back->next = front->next;
-    front->next->prev = back;
-    free(front);
-    return root;
-}*/
-
-//Search for item_r with data_r K in the list
-/*Em principio ta MAL, só nao alterei pq nao usamos
-item_r* ring_search(item_r* root, data_r K){
-
-    if(root == NULL){
-		printf("Search cancelled, empty list, returning NULL\n");
-		return NULL;
-	}
-
-    if(root->next == NULL){
-        if(equal_data_r(root->K, K))
-            return root;
-        else{
-            printf("Element not found, returning NULL\n");
-    		return NULL;
-        }
-    }
-
-    item_r *front = root, *back = root->prev;
-    int front_found = 0, back_found = 0;
-	#pragma omp parallel sections shared(front, back, front_found, back_found)
-    {
-        #pragma omp section
-        {
-            while(1){
-                if(!front_found && !back_found){
-                    if(equal_data_r(front->K, K)){
-                        front_found = 1;
-                    }else{
-                        front = front->next;
-                    }
-                }else{
-                    break;
-                }
-            }
-        }
-        #pragma omp section
-        {
-            while(1){
-                if(!front_found && !back_found){
-                    if(equal_data_r(back->K, K)){
-                        back_found = 1;
-                    }else{
-                        if(back != front && back->prev != front)
-                            back = back->prev;
-                    }
-                }else{
-                    break;
-                }
-            }
-        }
-    }
-
-    if(front_found){
-        return front;
-    }else if(back_found){
-        return back;
-    }else{
-        printf("Element not found, returning NULL\n");
-        return NULL;
-    }
-}
-*/
-
-//Free all the elements of a list
-/*ACHO QUE NAO DÁ PARA PARALELO
-void ring_free(item_r* root){
-
-    if(root == NULL){
-		printf("Empty list already\n");
-		return;
-	}
-
-    if(root->next == NULL){
-        free(root);
-        return;
-    }
-
-    item_r *tail = root->prev, *front = root, *back = tail;
-
-    #pragma omp parallel sections shared(front, back, root, tail)
-    {
-        #pragma omp section
-        {
-            while(front != back && root != NULL){
-                front = root;
-                root = root->next;
-                free(front);
-            }
-        }
-        #pragma omp section
-        {
-            while(back != front && tail != NULL){
-                back = tail;
-                tail = tail->prev;
-                free(back);
-            }
-        }
-    }
-}
-*/
 
 //Free all the elements of a list
 void ring_free(item_r* root){
