@@ -279,7 +279,7 @@ void list_free(item* root){
 //Free all the elements of a list
 void list_free(item* root){
 	item *aux;
-
+	root = list_dering(root);
 	while(root != NULL){
 		aux = root;
 		root = root->next;

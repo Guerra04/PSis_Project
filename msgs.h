@@ -28,6 +28,7 @@ typedef struct message_gw{
 *	4 - delete photo
 *	5 - get photo name
 *	6 - get photo (download)
+*	-1 - exiting
 ************************************/
 typedef struct message_photo{
 	char buffer[MAX_SIZE];

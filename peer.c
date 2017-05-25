@@ -44,18 +44,21 @@ int search_keyword(item *photo, char *keyword);
 
 
 void kill_server(int n) {
-	buff = malloc(sizeof(message_gw));
 	//Message to send to gateway letting it know that this peer terminated
+	buff = malloc(sizeof(message_gw));
 	strcpy(buff->addr, ADDR);
 	buff->type = -1;
 	buff->port = PORT;
+	printf("Server addr %s, server port %d, message type %d\n",
+		buff->addr, buff->port,  buff->type);
 	char * stream = malloc(sizeof(message_gw));
 	memcpy(stream, buff, sizeof(message_gw));
 	sendto(sock_fd_gw, stream, sizeof(message_gw), 0,
 		(const struct sockaddr *) &server_addr, sizeof(server_addr));
-
+	sleep(1);
 	close(sock_fd);
 	close(sock_fd_gw);
+	list_free(photo_list);
 	free(buff);
 	free(msg);
 	free(handler);
@@ -116,7 +119,6 @@ int main(int argc, char* argv[]){
 
 	free(buff);
 	free(stream);
-	//close(sock_fd_gw);
 
 /*****************************SOCKET TCP*****************************/
 
@@ -145,13 +147,11 @@ int main(int argc, char* argv[]){
 	while(1){
 		int client_fd;
 		client_fd = accept(sock_fd, (struct sockaddr *) & client_addr, &size_addr);
-		DEBUG;
 		pthread_t thread_id;
 
-		if(pthread_create(&thread_id, NULL, connection, &client_fd) == 0){
-			printf("success\n");
+		if(pthread_create(&thread_id, NULL, connection, &client_fd) != 0){
+			perror("Creating thread: ");
 		}
-
 	}
 	close(sock_fd);
 	exit(0);
@@ -172,7 +172,7 @@ void *connection(void *client_fd){
 	char *stream = malloc(sizeof(message_photo));
 	int fd = *(int*)client_fd;
 	while(recv(fd, stream, sizeof(message_photo), 0) != EOF){
-		printf("Received message from client:\n");
+		printf("Received message from client!\n");
 		memcpy(msg, stream, sizeof(message_photo));
 		switch(msg->type){
 			case 0:
@@ -195,6 +195,11 @@ void *connection(void *client_fd){
 				break;
 			case 6:
 				get_photo(fd, msg);
+				break;
+			case -1:
+				printf("Client broke connenction!\n");
+				close(fd);
+				pthread_exit(NULL);
 				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");

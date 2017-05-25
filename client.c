@@ -10,6 +10,7 @@
 #include <stdint.h> //uint_'s
 #include "msgs.h"
 #include "gallery.h"
+
 #define LINE_S 100
 #define COMMANDS " add, keyadd, search, delete, getname, download, quit"
 #define DEBUG printf("aqui\n")
@@ -20,10 +21,14 @@ struct sigaction *handler;
 
 void test();
 void usage(char*);
-void kill_server(int n);
+void notify_server(int n);
 
 int main(int argc, char* argv[]){
 
+	//Ctrl+C
+	handler = malloc(sizeof(handler));
+    handler->sa_handler = &notify_server;
+	sigaction(SIGINT, handler, NULL);
 	/*struct sockaddr_in client_gw_addr;
 	int nbytes;
 	int err;*/
@@ -167,7 +172,7 @@ int main(int argc, char* argv[]){
 		//Commmand to quit
 		else if(strcmp(command, "quit") == 0){
 			printf("Bye bye!\n"); //TODO por frase bacana
-			break;
+			notify_server(0);
 		}
 		//None of the above commands
 		else{
@@ -204,7 +209,11 @@ void usage(char *message){
 	printf("\x1B[31mUsage: \x1B[0m%s\n", message);
 }
 
-void kill_server(int n) {
+void notify_server(int n) {
+	char *msg = malloc(strlen("Client exiting")*sizeof(char));
+	strcpy(msg, "Client exiting");
+	stream_and_send_photo(fd, msg, -1);
+
 	close(fd);
 	free(msg);
 	free(handler);

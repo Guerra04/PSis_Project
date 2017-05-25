@@ -17,15 +17,12 @@ int sock_fd_peer;
 int sock_fd_client;
 struct sigaction *handler;
 item* peer_list;
+int sigint = 0;
 pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 uint32_t photo_id = 0;
 
 void kill_server(int n) {
-	list_free(peer_list);
-	close(sock_fd_peer);
-	close(sock_fd_client);
-	free(handler);
-	exit(0);
+	sigint = 1;
 }
 
 void *connection_peer(void *args);
@@ -38,21 +35,27 @@ int main(){
 	//Action of SIGINT
 	handler = malloc(sizeof(handler));
     handler->sa_handler = &kill_server;
+	handler->sa_flags = SA_SIGINFO;
 	sigaction(SIGINT, handler, NULL);
 	/*******************/
 
 	pthread_t thread_peer;
 	pthread_t thread_client;
 
-	if(pthread_create(&thread_peer, NULL, connection_peer, NULL) == 0){
-		printf("success\n");
+	if(pthread_create(&thread_peer, NULL, connection_peer, NULL) != 0){
+		perror("Fail creating thread_peer\n");
 	}
 
-	if(pthread_create(&thread_client, NULL, connection_client, NULL) == 0){
-		printf("success\n");
+	if(pthread_create(&thread_client, NULL, connection_client, NULL) != 0){
+		perror("Fail creating thread_client\n");
 	}
 
-	while(1);
+	while(!sigint);
+	list_free(peer_list);
+	DEBUG;
+	close(sock_fd_peer);
+	close(sock_fd_client);
+	free(handler);
 
 	exit(0);
 }
@@ -97,13 +100,15 @@ void *connection_peer(void *args){
 			sendto(sock_fd_peer, &ack, sizeof(int), 0,
 				(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
 		}else if(buff->type == -1){
+			DEBUG;
 			data K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
 			pthread_mutex_lock(&list_lock);
 			peer_list = list_remove(peer_list, K);
+			DEBUG;
 			pthread_mutex_unlock(&list_lock);
-			printf("Server %s with port %d r\x1B[31memoved from list\x1B[0m\n", K.addr, K.port);
+			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
 		}else if(buff->type == 1){
 			++photo_id;
 			sendto(sock_fd_peer, &photo_id, sizeof(uint32_t), 0,
