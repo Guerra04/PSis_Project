@@ -399,7 +399,7 @@ void send_photo(int fd, message_photo *msg, int isPeer){
 
 	sscanf(msg->buffer, "%u", &id);
 	data K = set_data("", id); //aux data to search
-
+	//TODO dupla procura quando envia foto pra peer
 	pthread_mutex_lock(&list_lock);
 	item *aux = list_search(&photo_list, K);
 	pthread_mutex_unlock(&list_lock);
