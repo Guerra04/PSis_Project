@@ -95,7 +95,6 @@ int main(int argc, char* argv[]){
 	//Waits for list of peers
 	if( recv_ring_udp(sock_fd_gw, &peer_list) == -1)
 		exit(1);
-
 	if(errno == EAGAIN || errno == EWOULDBLOCK){
 		//timeout occured
 		printf("[ABORTING] The Gateway is not online\n");
@@ -104,7 +103,6 @@ int main(int argc, char* argv[]){
 	printf("*********Peers list***********\n");
 	ring_print(peer_list);
 	printf("******************************\n");
-
 	free(buff);
 
 

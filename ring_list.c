@@ -62,8 +62,7 @@ int ring_remove(item_r** root, data_r K){
 	item_r *aux, *aux_seg;
 
 	if((*root) == NULL){
-		perror("Already an empty list!\n");
-		exit(-1);
+		return 0;
 	}
 
 	aux = (*root);
@@ -98,6 +97,24 @@ int ring_remove(item_r** root, data_r K){
 	return 1;
 }
 
+item_r* ring_search(item_r* root, data_r K){
+	item_r *aux;
+
+	if(root == NULL){
+		return NULL;
+	}
+
+	aux = root;
+	while(!equal_data(aux->K, K)){
+		if(aux->next == root){
+			printf("No data K found in search!\n");
+			return NULL;
+		}
+		aux = aux->next;
+	}
+
+	return aux;
+}
 //Free all the elements of a list
 void ring_free(item_r* root){
 	item_r *aux;
