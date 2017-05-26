@@ -224,3 +224,17 @@ void list_split(item* head, item** first_half, item** second_half){
 		slow->next = NULL;
 	}
 }
+
+int list_count(item *root){
+	int count=0;
+	if(root==NULL)
+		return 0;
+
+	item* aux = root;
+	count++;
+	while(aux->next != NULL){
+		count++;
+		aux = aux->next;
+	}
+	return count;
+}

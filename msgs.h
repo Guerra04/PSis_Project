@@ -1,10 +1,11 @@
 //#define SOCKET_NAME "best_socket"
 #define MAX_SIZE 100
-#define KNOWN_IP "127.0.0.1"
+#define KNOWN_IP "194.210.134.75"
 #define KNOWN_PORT_PEER 3000
 #define KNOWN_PORT_CLIENT 3001
 
 #include "ring_list.h"
+#include "linked_list.h"
 
 //gateway
 //type 1 - fetch photo id
@@ -31,6 +32,9 @@ typedef struct message_gw{
 *	5 - get photo name
 *	6 - get photo (download)
 *	-1 - exiting
+*********P2P types**********
+*	7 - recv new peer info
+*	8 - recv new peer info and send photo_list+photos
 ************************************/
 typedef struct message_photo{
 	char buffer[MAX_SIZE];
@@ -54,3 +58,7 @@ int recv_and_unstream_photo(int sock_fd, message_photo *buff);
 int recv_ring_udp(int sock_fd, item_r **peer_list);
 
 int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list);
+
+int recv_list_tcp(int sock_fd, item** list);
+
+int send_list_tcp(int sock_fd, item *photo_list);

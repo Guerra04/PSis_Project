@@ -63,7 +63,7 @@ int main(int argc, char* argv[]){
 		//Get user input
 		fgets(line,LINE_S, stdin);
 		sscanf(line,"%s %[^\n]", command, arg);//TODO maybe scan for garbage
-
+		//TODO meter command connect para se um peer for abaixo dar para conectar a outro
 		//[HIDDEN] é só pra nós testarmos
 		if(strcmp(command,"test") == 0){
 			test();
