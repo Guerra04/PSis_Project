@@ -31,7 +31,9 @@ message_photo * msg;
 struct sigaction *handler;
 item *photo_list = NULL;
 item_r *peer_list = NULL;
-pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
+//TODO verificar se ta lock em todo o lado
+pthread_mutex_t photo_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t peer_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void strupr(char * line);
 void *connection(void *client_fd);
@@ -43,7 +45,8 @@ void delete_photo(int fd, message_photo *msg);
 void send_photo_name(int fd, message_photo *msg);
 void send_photo(int fd, message_photo *msg, int isPeer);
 int search_keyword(item *photo, char *keyword);
-
+void register_peer(message_photo *msg);
+void send_all_photos(int fd);
 
 void kill_server(int n) {
 	//Message to send to gateway letting it know that this peer terminated
@@ -103,7 +106,8 @@ int main(int argc, char* argv[]){
 	printf("******************************\n");
 
 	free(buff);
-	//close(sock_fd_gw);
+
+
 
 /*****************************SOCKET TCP*****************************/
 
@@ -184,6 +188,13 @@ void *connection(void *client_fd){
 				close(fd);
 				pthread_exit(NULL);
 				break;
+			case 7:
+				register_peer(msg);
+				break;
+			case 8:
+				register_peer(msg);
+				send_all_photos(fd);
+				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
 				printf("%s\n", msg->buffer);
@@ -243,10 +254,10 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	data photo;
 	sprintf(photo_name, "%s.%s", name, ext);
 	photo = set_data(photo_name, id);
-	pthread_mutex_lock(&list_lock);
+	pthread_mutex_lock(&photo_lock);
 	list_insert(&photo_list, photo);
 	list_print(photo_list);
-	pthread_mutex_unlock(&list_lock);
+	pthread_mutex_unlock(&photo_lock);
 
 	//Saving photo in disk
 	sprintf(photo_name, "%u", id);
@@ -277,18 +288,18 @@ void add_keyword(int fd, message_photo *msg){
 	sscanf(msg->buffer, "%u.%s", &id, keyword);
 	data K;
 	K.id = id;
-	pthread_mutex_lock(&list_lock);
+	pthread_mutex_lock(&photo_lock);
 	item* aux = list_search(&photo_list, K);
-	pthread_mutex_unlock(&list_lock);
+	pthread_mutex_unlock(&photo_lock);
 
 	if(aux == NULL){ //photo with sent id doesn't exist
 		success = -2;
 	}else{
 		if(aux->K.n_keywords < MAX_KEYWORDS){
 			//TODO bcast to all peers
-			pthread_mutex_lock(&list_lock);
+			pthread_mutex_lock(&photo_lock);
 			strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
-			pthread_mutex_unlock(&list_lock);
+			pthread_mutex_unlock(&photo_lock);
 			success = 1;
 		}else{ //keyword list already full
 			success = -1;
@@ -307,7 +318,7 @@ void search_photo(int fd, message_photo *msg){
 
 	int n_photos = 0;
 	item *list = list_init(); //list to store photos
-	pthread_mutex_lock(&list_lock);
+	pthread_mutex_lock(&photo_lock);
 	item *photo = photo_list;
 	while(photo != NULL){
 		if(search_keyword(photo, keyword)){
@@ -317,7 +328,7 @@ void search_photo(int fd, message_photo *msg){
 		}
 		photo = photo->next;
 	}
-	pthread_mutex_unlock(&list_lock);
+	pthread_mutex_unlock(&photo_lock);
 
 	//send length of list
 	//TODO se houver merda aqui, vai ser foda no cliente
@@ -372,9 +383,9 @@ void send_photo_name(int fd, message_photo *msg){
 	sscanf(msg->buffer, "%u", &id);
 	data K = set_data("", id); //aux data to search
 
-	pthread_mutex_lock(&list_lock);
+	pthread_mutex_lock(&photo_lock);
 	item *aux = list_search(&photo_list, K);
-	pthread_mutex_unlock(&list_lock);
+	pthread_mutex_unlock(&photo_lock);
 
 	int length = 0;
 	if(aux != NULL) //photo exists
@@ -399,11 +410,13 @@ void send_photo(int fd, message_photo *msg, int isPeer){
 
 	sscanf(msg->buffer, "%u", &id);
 	data K = set_data("", id); //aux data to search
+
 	//TODO dupla procura quando envia foto pra peer
-	pthread_mutex_lock(&list_lock);
+	pthread_mutex_lock(&photo_lock);
 	item *aux = list_search(&photo_list, K);
-	pthread_mutex_unlock(&list_lock);
+	pthread_mutex_unlock(&photo_lock);
 	data photo = aux->K;
+
 
 	FILE *fp;
 	long size = 0;
@@ -484,23 +497,64 @@ int connect_peer(char * addr, in_port_t port){
 	return sock_fd;
 }
 
-data set_data(char* name, uint32_t id){
-	data K;
-	strcpy(K.name, name);
-	K.id = id;
-	K.n_keywords = 0;
-	return K;
+int notify_and_recv_photos(){
+	if(ring_count(peer_list) != 1){
+		item_r *aux = peer_list;
+		int has_photos = 0; //verify if peer has received the photos
+		message_photo *msg = malloc(sizeof(message_photo));
+		do{
+			int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
+			char buffer[MAX_SIZE];
+			sprintf(buffer, "%s.%d", aux->K.addr, aux->K.port); //send addr and port
+			if(!has_photos){
+				if(stream_and_send_photo(p2p_sock, buffer, 8) == -1){
+					return -1;
+				}
+				//First receives the size of the list
+				int size=0;
+				if(recv_all(p2p_sock, &size, sizeof(int), 0) == -1){
+					perror("Receive size: ");
+					return -1;
+				}
+				for(int i = 0; i < size; i++){
+					recv_and_unstream_photo(p2p_sock, msg);
+					add_photo(p2p_sock, msg, 1);
+				}
+				has_photos = 1;
+			}else{
+				if(stream_and_send_photo(p2p_sock, buffer, 7) == -1){
+					return -1;
+				}
+			}
+			aux = aux->next;
+		}while(aux != peer_list);
+	}
+	return 0;
 }
 
-int equal_data(data K1, data K2){
-		return K1.id == K2.id;
+/*******************************************************************************
+Appends new peer in the peer list
+*******************************************************************************/
+void register_peer(message_photo *msg){
+	char addr[MAX_SIZE];
+	int port;
+	sscanf(msg->buffer, "%s.%d", addr, &port);
+	data_r K = set_data_r(addr, port);
+	pthread_mutex_lock(&peer_lock);
+	ring_append(&peer_list, K);
+	pthread_mutex_unlock(&peer_lock);
+	return;
 }
 
-void print_data(data K){
-	printf("photo: name = %s, id = %u, KW = ", K.name, K.id);
-	//TODO primeiro inicializar keywords
-	/*for(int i = 0; i < 20; i++)
-		printf("%s ", K.keyword[i]);*/
-	printf("\n");
+/*******************************************************************************
+Sends all the photos to the new peer
+*******************************************************************************/
+void send_all_photos(int fd){
+	item *aux = photo_list;
+	message_photo *msg = malloc(sizeof(message_photo));
+	while(aux != NULL){
+		sprintf(msg->buffer, "%u", aux->K.id);
+		send_photo(fd, msg, 1);
+	}
 	return;
 }

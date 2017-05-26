@@ -45,7 +45,7 @@ item_r* ring_dering(item_r *root);
 int ring_count(item_r *root);
 
 /***** funções abstratas (falta implementação)***/
-data_r set_data_r(int x, int y, int z);
+data_r set_data_r(char * addr, int port);
 
 int equal_data_r(data_r K1, data_r K2); //sucesso=1, insucesso=0
 

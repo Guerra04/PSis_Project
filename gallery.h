@@ -1,3 +1,4 @@
+//TODO mudar o nome para API.h
 #ifndef GALLERY_LIB
 #define GALLERY_LIB
 

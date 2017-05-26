@@ -154,7 +154,87 @@ int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list
 	}
 	return 0;
 }
-//Dummy functions
+
+int recv_list_tcp(int sock_fd, item** list){
+	//First receives the size of the list
+	int size=0;
+	if(recv_all(sock_fd, &size, sizeof(int), 0) == -1){
+		perror("Receive size: ");
+		return -1;
+	}
+	//Then receives list, if it isn't empty
+	if(size!=0){
+		//Receive vectorized list
+		data d_recv[size];
+		char *stream = malloc(size*sizeof(data));
+		if(recv(sock_fd, stream, size*sizeof(data), 0) == -1){
+			perror("Receive list: ");
+			return -1;
+		}
+		memcpy(d_recv, stream, size*sizeof(data));
+		for(int i=0; i < size; i++){
+			list_insert(list, d_recv[i]);
+		}
+	}
+	return 0;
+}
+
+int send_list_tcp(int sock_fd, item *photo_list){
+
+	int size = list_count(photo_list);
+	if(send_all(sock_fd, &size, sizeof(int), 0) == -1){
+		perror("Send size: ");
+		return -1;
+	}
+
+	if(size!=0){
+		//Vectorizes list
+		data d_send[size];
+		for(int i=0; i < size; i++){
+			d_send[i] = photo_list->K;
+			photo_list = photo_list->next;
+		}
+		//Streams and sends peer_list
+		char *stream = malloc(size*sizeof(data));
+		memcpy(stream, d_send, size*sizeof(data));
+		if(send_all(sock_fd, d_send, size*sizeof(data), 0) == -1){
+			perror("Send list: ");
+			return -1;
+		}
+	}
+	return 0;
+}
+
+//Dummy functions for linked list
+data set_data(char* name, uint32_t id){
+	data K;
+	strcpy(K.name, name);
+	K.id = id;
+	K.n_keywords = 0;
+	return K;
+}
+
+int equal_data(data K1, data K2){
+		return K1.id == K2.id;
+}
+
+void print_data(data K){
+	printf("photo: name = %s, id = %u, KW = ", K.name, K.id);
+	//TODO primeiro inicializar keywords
+	/*for(int i = 0; i < 20; i++)
+		printf("%s ", K.keyword[i]);*/
+	printf("\n");
+	return;
+}
+
+data_r set_data_r(char *addr, int port){
+	data_r K;
+	K.port = port;
+	strcpy(K.addr, addr);
+	return K;
+}
+
+//Dummy functions for ring list
 int equal_data_r(data_r K1, data_r K2){
 		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
 			return 1;

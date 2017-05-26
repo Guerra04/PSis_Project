@@ -46,6 +46,8 @@ void list_sort(item** root);
 
 void list_split(item* head, item** first_half, item** second_half);
 
+int list_count(item *root);
+
 /***** funções abstratas (falta implementação)***/
 data set_data(char* name, uint32_t id);
 
