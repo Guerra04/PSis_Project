@@ -1,6 +1,6 @@
 //#define SOCKET_NAME "best_socket"
 #define MAX_SIZE 100
-#define KNOWN_IP "194.210.134.75"
+#define KNOWN_IP "127.0.0.1"
 #define KNOWN_PORT_PEER 3000
 #define KNOWN_PORT_CLIENT 3001
 

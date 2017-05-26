@@ -45,6 +45,7 @@ void delete_photo(int fd, message_photo *msg);
 void send_photo_name(int fd, message_photo *msg);
 void send_photo(int fd, message_photo *msg, int isPeer);
 int search_keyword(item *photo, char *keyword);
+int notify_and_recv_photos();
 void register_peer(message_photo *msg);
 void send_all_photos(int fd);
 
@@ -104,10 +105,11 @@ int main(int argc, char* argv[]){
 	printf("*********Peers list***********\n");
 	ring_print(peer_list);
 	printf("******************************\n");
-
+	//Puts the root of the peer list in the struct that represents him
+	peer_list = ring_search();
 	free(buff);
 
-
+	notify_and_recv_photos();
 
 /*****************************SOCKET TCP*****************************/
 
@@ -453,7 +455,7 @@ void send_photo(int fd, message_photo *msg, int isPeer){
 		if(send_all(fd, photo, size, 0) == -1){
 			perror("Sending: ");
 		}
-		free(photo);
+		//free(photo);
 	}
 }
 
@@ -499,10 +501,10 @@ int connect_peer(char * addr, in_port_t port){
 
 int notify_and_recv_photos(){
 	if(ring_count(peer_list) != 1){
-		item_r *aux = peer_list;
+		item_r *aux = peer_list->next;
 		int has_photos = 0; //verify if peer has received the photos
 		message_photo *msg = malloc(sizeof(message_photo));
-		do{
+		while(aux != peer_list){
 			int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
 			char buffer[MAX_SIZE];
 			sprintf(buffer, "%s.%d", aux->K.addr, aux->K.port); //send addr and port
@@ -527,7 +529,8 @@ int notify_and_recv_photos(){
 				}
 			}
 			aux = aux->next;
-		}while(aux != peer_list);
+			close(p2p_sock);
+		}
 	}
 	return 0;
 }
@@ -550,6 +553,11 @@ void register_peer(message_photo *msg){
 Sends all the photos to the new peer
 *******************************************************************************/
 void send_all_photos(int fd){
+	int size = list_count(photo_list);
+	if(send_all(fd, &size, sizeof(int), 0) == -1){
+		perror("Sending list size:");
+		return;
+	}
 	item *aux = photo_list;
 	message_photo *msg = malloc(sizeof(message_photo));
 	while(aux != NULL){
