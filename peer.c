@@ -36,12 +36,12 @@ pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 void strupr(char * line);
 void *connection(void *client_fd);
 void testing_comm(int fd, message_photo *msg);
-int add_photo(int fd, message_photo *msg);
+int add_photo(int fd, message_photo *msg, int isPeer);
 void add_keyword(int fd, message_photo *msg);
 void search_photo(int fd, message_photo *msg);
 void delete_photo(int fd, message_photo *msg);
-void get_photo_name(int fd, message_photo *msg);
-void get_photo(int fd, message_photo *msg);
+void send_photo_name(int fd, message_photo *msg);
+void send_photo(int fd, message_photo *msg, int isPeer);
 int search_keyword(item *photo, char *keyword);
 
 
@@ -162,7 +162,7 @@ void *connection(void *client_fd){
 				testing_comm(fd, msg);
 				break;
 			case 1:
-				add_photo(fd, msg); //TODO resend if negative
+				add_photo(fd, msg, 0); //TODO resend if negative
 				break;
 			case 2:
 				add_keyword(fd, msg);
@@ -174,10 +174,10 @@ void *connection(void *client_fd){
 				delete_photo(fd, msg);
 				break;
 			case 5:
-				get_photo_name(fd, msg);
+				send_photo_name(fd, msg);
 				break;
 			case 6:
-				get_photo(fd, msg);
+				send_photo(fd, msg, 0);
 				break;
 			case -1:
 				printf("Client broke connenction!\n");
@@ -208,13 +208,16 @@ void testing_comm(int fd, message_photo *msg){
 	free(stream);
 }
 
-int add_photo(int fd, message_photo *msg){
+int add_photo(int fd, message_photo *msg, int isPeer){
 	char name[MAX_SIZE];
 	char ext[10];
 	long size=0;
 	uint32_t id=0;
 	char photo_name[MAX_SIZE];
-	sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
+	if(isPeer)
+		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu.%u", name, ext, &size, &id);
+	else
+		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
 
 	//Receive photo
 	char *bytestream = malloc(size*sizeof(char));
@@ -223,15 +226,17 @@ int add_photo(int fd, message_photo *msg){
 		return -1;
 	}
 
-	//Asks Gateway for a new id
-	if(stream_and_send_gw(sock_fd_gw, &server_addr, ADDR, PORT, 1) == -1)
-		exit(1);
+	if(!isPeer){
+		//Asks Gateway for a new id
+		if(stream_and_send_gw(sock_fd_gw, &server_addr, ADDR, PORT, 1) == -1)
+			exit(1);
 
-	//Receives id from the gateway
-	socklen_t size_addr = sizeof(server_addr);
-	if(recvfrom(sock_fd_gw, &id, sizeof(uint32_t), 0, (struct sockaddr *) &server_addr, &size_addr) == -1){
-		perror("wtf: ");
-		exit(1);
+		//Receives id from the gateway
+		socklen_t size_addr = sizeof(server_addr);
+		if(recvfrom(sock_fd_gw, &id, sizeof(uint32_t), 0, (struct sockaddr *) &server_addr, &size_addr) == -1){
+			perror("wtf: ");
+			exit(1);
+		}
 	}
 
 	//Saving photo characteristics in list
@@ -240,11 +245,11 @@ int add_photo(int fd, message_photo *msg){
 	photo = set_data(photo_name, id);
 	pthread_mutex_lock(&list_lock);
 	list_insert(&photo_list, photo);
+	list_print(photo_list);
 	pthread_mutex_unlock(&list_lock);
 
-	list_print(photo_list);
 	//Saving photo in disk
-	sprintf(photo_name, "%u", id); //CHANGED gravar o nome so com o id, pq depois é mais facil apagar
+	sprintf(photo_name, "%u", id);
 	FILE *fp;
 	if((fp = fopen( photo_name, "wb")) == NULL){
 		perror("Opening file to write");
@@ -253,10 +258,12 @@ int add_photo(int fd, message_photo *msg){
 	fwrite(bytestream, size, 1, fp);//TODO writes all at once?
 	fclose(fp);
 	free(bytestream);
-	//Sending photo id to client
-	if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
-		perror("Sending: ");
-		return -2;
+	if(!isPeer){
+		//Sending photo id to client
+		if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
+			perror("Sending: ");
+			return -2;
+		}
 	}
 	//TODO bcast to other peers
 	return id;
@@ -316,6 +323,7 @@ void search_photo(int fd, message_photo *msg){
 	//TODO se houver merda aqui, vai ser foda no cliente
 	if( send_all(fd, &n_photos, sizeof(int), 0) == -1){
 		perror("Sending: ");
+		return;
 	}
 
 	if(n_photos == 0){
@@ -358,7 +366,7 @@ void delete_photo(int fd, message_photo *msg){
 	return;
 }
 
-void get_photo_name(int fd, message_photo *msg){
+void send_photo_name(int fd, message_photo *msg){
 	uint32_t id;
 
 	sscanf(msg->buffer, "%u", &id);
@@ -385,7 +393,7 @@ void get_photo_name(int fd, message_photo *msg){
 	return;
 }
 
-void get_photo(int fd, message_photo *msg){
+void send_photo(int fd, message_photo *msg, int isPeer){
 
 	uint32_t id;
 
@@ -395,14 +403,13 @@ void get_photo(int fd, message_photo *msg){
 	pthread_mutex_lock(&list_lock);
 	item *aux = list_search(&photo_list, K);
 	pthread_mutex_unlock(&list_lock);
+	data photo = aux->K;
 
 	FILE *fp;
 	long size = 0;
 	if(aux != NULL){
 		char file_name[MAX_SIZE];
-		char ext[10];
-		sscanf(aux->K.name, "%*[^.].%s", ext);
-		sprintf(file_name, "%u.%s", id, ext);
+		sprintf(file_name, "%u", id);
 
 		if((fp = fopen(file_name, "rb")) == NULL){
 			//Invalid filename
@@ -412,16 +419,28 @@ void get_photo(int fd, message_photo *msg){
 		size = ftell(fp);  // gets the current byte offset in the file
 		rewind(fp);
 	}
-	//Send size of the photo
-	if(send_all(fd, &size, sizeof(long), 0) == -1){
-		perror("Sending: ");
-	}
-	char *photo = malloc((size)*sizeof(char));
-	fread(photo, size, 1, fp); //reads the whole file at once
-	fclose(fp);
 
-	if(send_all(fd, photo, size, 0) == -1){
-		perror("Sending: ");
+	if(isPeer){
+		char message[MAX_SIZE];
+		//message: photo name, photo size, photo id
+		sprintf(message, "%s.%lu.%u", photo.name, size, id);
+		if(stream_and_send_photo(fd, message, 1) == -1)
+			exit(1);
+	}else{
+		//Send size of the photo
+		if(send_all(fd, &size, sizeof(long), 0) == -1){
+			perror("Sending: ");
+		}
+	}
+	if(size != 0){
+		char *photo = malloc((size)*sizeof(char));
+		fread(photo, size, 1, fp); //reads the whole file at once
+		fclose(fp);
+		//Send photo
+		if(send_all(fd, photo, size, 0) == -1){
+			perror("Sending: ");
+		}
+		free(photo);
 	}
 }
 
@@ -436,6 +455,33 @@ int search_keyword(item *photo, char *keyword){
 			return 1;
 	}
 	return 0;
+}
+
+/*******************************************************************************
+Creates a TCP connection between peers.
+Returns:
+	- socket file descriptor on success.
+	- -1: on error
+*******************************************************************************/
+int connect_peer(char * addr, in_port_t port){
+	int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (sock_fd == -1){
+		perror("socket: ");
+		exit(-1);
+	}
+
+	struct sockaddr_in server_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port= htons(port);
+	inet_aton(addr, &server_addr.sin_addr);
+
+	if( -1 == connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr))){
+		perror("Connecting to Peer: ");
+		exit(-1);
+	}
+
+	return sock_fd;
 }
 
 data set_data(char* name, uint32_t id){

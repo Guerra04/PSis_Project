@@ -99,19 +99,22 @@ void *connection_peer(void *args){
 			//Send peer_list to new_peer
 			if( send_ring_udp(sock_fd_peer, &peer_addr, peer_list) == -1)
 				exit(1);
+			//Prints peer list
 			printf("*********Peers list***********\n");
 			ring_print(peer_list);
 			printf("******************************\n");
 		}else if(buff->type == -1){
-			DEBUG;
 			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
 			pthread_mutex_lock(&list_lock);
 			ring_remove(&peer_list, K);
-			DEBUG;
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
+			//Prints peer list
+			printf("*********Peers list***********\n");
+			ring_print(peer_list);
+			printf("******************************\n");
 		}else if(buff->type == 1){
 			++photo_id;
 			sendto(sock_fd_peer, &photo_id, sizeof(uint32_t), 0,
