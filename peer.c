@@ -42,6 +42,7 @@ void delete_photo(int fd, message_photo *msg);
 void send_photo_name(int fd, message_photo *msg);
 void send_photo(int fd, message_photo *msg, int isPeer, item* aux);
 int search_keyword(item *photo, char *keyword);
+int notify_and_recv_photos();
 void register_peer(message_photo *msg);
 void send_all_photos(int fd, message_photo *msg);
 int notify_and_recv_photos(message_photo *msg);
@@ -108,11 +109,13 @@ int main(int argc, char* argv[]){
 	ring_print(peer_list);
 	pthread_mutex_unlock(&peer_lock);
 	printf("******************************\n");
+
 	//Infroms the other peers that this peer have entered in the system
 	message_photo * msg = malloc(sizeof(message_photo));
 	if(notify_and_recv_photos(msg) == -1)
 		exit(1);
 	free(msg);
+
 
 /*****************************SOCKET TCP*****************************/
 
@@ -548,6 +551,7 @@ int notify_and_recv_photos(message_photo *msg){
 				}
 			}
 			aux = aux->next;
+			close(p2p_sock);
 		}
 	}
 	return 0;
@@ -577,8 +581,10 @@ void send_all_photos(int fd, message_photo *msg){
 	pthread_mutex_lock(&photo_lock);
 	//Send size of photo_list
 	int size = list_count(photo_list);
-	if(send_all(fd, &size, sizeof(int), 0) == -1)
+	if(send_all(fd, &size, sizeof(int), 0) == -1){
+		perror("Sending list size:");
 		exit(1);
+	}
 
 	item *aux = photo_list;
 	while(aux != NULL){
