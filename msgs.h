@@ -1,6 +1,6 @@
 //#define SOCKET_NAME "best_socket"
 #define MAX_SIZE 100
-#define KNOWN_IP "194.210.134.75"
+#define KNOWN_IP "127.0.0.1"
 #define KNOWN_PORT_PEER 3000
 #define KNOWN_PORT_CLIENT 3001
 
@@ -47,7 +47,7 @@ int recv_all(int socket, void *buffer, size_t max_length, int flags);
 
 int stream_and_send_gw(int fd,struct sockaddr_in *other_addr, char *addr, in_port_t port, int type);
 
-int stream_and_send_photo(int fd, char *buffer, int type);
+int stream_and_send_photo(int fd, const char *buffer, int type);
 
 void set_recv_timeout(int sock_fd, int secs, int usecs);
 

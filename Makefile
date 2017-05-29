@@ -1,53 +1,61 @@
 # $@ - left side of :
 # $^ - right side of :
 # $< - first target
-COMPFLAGS = gcc -std=gnu99 -Wall -c
-LINKFLAGS = gcc -o
+COMPFLAGS = gcc -std=gnu99 -Wall -g -c
+LINKFLAGS = gcc -g -o
 EXTRAFLAGS = -lpthread
 
-all: gateway peer client gallery.o receiver sender sender2
+all: gateway peer client gallery.o receiver sender sender2 receiver2
 
-receiver: peer.o linked_list.o msgs.o ring_list.o linked_list.o
+# EXECUTABLES TO TEST IMAGE TRANSFER
+receiver: peer.o msgs.o ring_list.o linked_list.o
 	$(LINKFLAGS) Receiver/peer $^ $(EXTRAFLAGS)
 
-sender: gallery.o client.o msgs.o ring_list.o linked_list.o
+receiver2: peer.o msgs.o ring_list.o linked_list.o
+	$(LINKFLAGS) Receiver2/peer $^ $(EXTRAFLAGS)
+
+sender: client.o gallery.o msgs.o ring_list.o linked_list.o
 	$(LINKFLAGS) Sender/client $^ $(EXTRAFLAGS)
 
-sender2: gallery.o client.o msgs.o ring_list.o linked_list.o
+sender2: client.o gallery.o msgs.o ring_list.o linked_list.o
 	$(LINKFLAGS) Sender2/client $^ $(EXTRAFLAGS)
 
-gateway: gateway.o ring_list.o msgs.o linked_list.o
+# THREE MAIN EXECUTABLES
+gateway: gateway.o msgs.o ring_list.o linked_list.o
 	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-gateway.o: gateway.c msgs.c ring_list.c
-	$(COMPFLAGS) $^
+peer: peer.o msgs.o ring_list.o linked_list.o
+	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
 
-linked_list.o: linked_list.c linked_list.h
+client: client.o gallery.o msgs.o ring_list.o linked_list.o
+	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
+
+# OBJECT FILES
+gateway.o: gateway.c msgs.h
+	$(COMPFLAGS) $<
+
+peer.o: peer.c msgs.h
+	$(COMPFLAGS) $<
+
+client.o: client.c msgs.h
+	$(COMPFLAGS) $<
+
+gallery.o: gallery.c gallery.h
+	$(COMPFLAGS) $<
+
+msgs.o: msgs.c msgs.h
 	$(COMPFLAGS) $<
 
 ring_list.o: ring_list.c ring_list.h
 	$(COMPFLAGS) $<
 
-peer: peer.o linked_list.o msgs.o ring_list.o linked_list.o
-	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
+linked_list.o: linked_list.c linked_list.h
+	$(COMPFLAGS) $<
 
-peer.o: peer.c msgs.c linked_list.c ring_list.c
-	$(COMPFLAGS) $^
-
-client: gallery.o client.o msgs.o ring_list.o linked_list.o
-	$(LINKFLAGS) $@ $^ $(EXTRAFLAGS)
-
-client.o: client.c msgs.c gallery.c
-	$(COMPFLAGS) $^
-
-gallery.o: gallery.c gallery.h msgs.c
-	$(COMPFLAGS) $< msgs.c
-
-msgs.o: msgs.c msgs.h ring_list.c linked_list.c
-	$(COMPFLAGS) $< ring_list.c linked_list.c
-
+# TEST PROGRAM
 test: test.c
 	$(LINKFLAGS) $@ $<
 
+# CLEAN
 clean:
 	rm -f gateway peer client test *.o

@@ -61,7 +61,7 @@ int stream_and_send_gw(int fd,struct sockaddr_in* other_addr, char *addr, in_por
 	return 0;
 }
 
-int stream_and_send_photo(int fd, char *buffer, int type){
+int stream_and_send_photo(int fd, const char *buffer, int type){
 	message_photo buff;
 	strcpy(buff.buffer, buffer);
 	buff.type = type;

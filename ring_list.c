@@ -5,7 +5,7 @@ item_r* ring_init(){
 	return NULL;
 }
 
-//Removes first element of the list
+//Removes an returns first element of the ring
 item_r* ring_first(item_r** root){
 	item_r *first;
 
@@ -25,7 +25,7 @@ item_r* ring_first(item_r** root){
 	return first;
 }
 
-//Puts an element in the beginning of the list
+//Puts an element in the end of the ring
 void ring_push(item_r** root, item_r* other){
 
     if(*root == NULL){
@@ -37,12 +37,11 @@ void ring_push(item_r** root, item_r* other){
 		(*root)->prev->next = other;
     	other->next = *root;
         (*root)->prev = other;
-    	*root = other;
     }
     return;
 }
 
-//Creates an element and puts it in the beginning of the list
+//Creates an element and puts it in the end of the ring
 void ring_append(item_r** root, data_r K){
 	item_r *new;
 
@@ -57,7 +56,8 @@ void ring_append(item_r** root, data_r K){
 	return;
 }
 
-
+//Removes element with data equal to K from the ring
+//returns 1 if it exists and it was removed, 0 otherwise
 int ring_remove(item_r** root, data_r K){
 	item_r *aux, *aux_seg;
 
@@ -97,6 +97,8 @@ int ring_remove(item_r** root, data_r K){
 	return 1;
 }
 
+//Searches for element with data equal to K on the ring
+//returns a reference to that element
 item_r* ring_search(item_r* root, data_r K){
 	item_r *aux;
 
@@ -105,7 +107,7 @@ item_r* ring_search(item_r* root, data_r K){
 	}
 
 	aux = root;
-	while(!equal_data(aux->K, K)){
+	while(!equal_data_r(aux->K, K)){
 		if(aux->next == root){
 			printf("No data K found in search!\n");
 			return NULL;
@@ -115,7 +117,7 @@ item_r* ring_search(item_r* root, data_r K){
 
 	return aux;
 }
-//Free all the elements of a list
+//Frees all the elements of a ring
 void ring_free(item_r* root){
 	item_r *aux;
 	root = ring_dering(root);
@@ -127,7 +129,7 @@ void ring_free(item_r* root){
 	return;
 }
 
-//Print all the elements of a list
+//Prints all the elements of a ring
 void ring_print(item_r* root){
 	item_r *aux;
 	data_r k;
@@ -146,7 +148,8 @@ void ring_print(item_r* root){
 	return;
 }
 
-//Appends one list to the end of another list
+//Appends one ring to another
+//returns a reference to the first element of list1
 item_r* rings_concatenate(item_r* list1, item_r* list2){
 	item_r *aux;
 

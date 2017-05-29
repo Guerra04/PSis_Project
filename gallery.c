@@ -90,14 +90,12 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	rewind(fp);
 
 	//Send photo size and name
-	char *name_and_size = malloc(MAX_SIZE*sizeof(char));
+	char *name_and_size;
 	char temp[20];
 	sprintf(temp, "%lu",file_size); // file_size to char
 	name_and_size = strcat(file,temp);
 	if(stream_and_send_photo(sock_peer, name_and_size, 1) == -1)
 		return 0;
-	free(name_and_size);
-
 
 	//Send photo
 	char *buffer = (char *)malloc((file_size)*sizeof(char));

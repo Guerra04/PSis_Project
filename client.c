@@ -16,7 +16,6 @@
 #define DEBUG printf("aqui\n")
 
 int fd;
-message_photo * msg;
 struct sigaction *handler;
 
 void test();
@@ -210,12 +209,9 @@ void usage(char *message){
 }
 
 void notify_server(int n) {
-	char *msg = malloc(strlen("Client exiting")*sizeof(char));
-	strcpy(msg, "Client exiting");
-	stream_and_send_photo(fd, msg, -1);
+	stream_and_send_photo(fd, "Client exiting", -1);
 
 	close(fd);
-	free(msg);
 	free(handler);
 	exit(0);
 }

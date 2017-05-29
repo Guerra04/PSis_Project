@@ -29,7 +29,7 @@ void *connection_peer(void *args);
 void *connection_client(void *args);
 
 int main(){
-
+	//initializing peer list
 	peer_list = ring_init();
 
 	//Action of SIGINT
@@ -41,15 +41,16 @@ int main(){
 
 	pthread_t thread_peer;
 	pthread_t thread_client;
-
+	//Thread that takes care of peers
 	if(pthread_create(&thread_peer, NULL, connection_peer, NULL) != 0){
 		perror("Fail creating thread_peer\n");
 	}
-
+	//Thread that takes care of clients
 	if(pthread_create(&thread_client, NULL, connection_client, NULL) != 0){
 		perror("Fail creating thread_client\n");
 	}
-
+	/*When one of the 3 threads handles the SIG_INT
+	* the main one closes all connections and frees all alocated memory*/
 	while(!sigint);
 
 	ring_free(peer_list);
@@ -59,7 +60,10 @@ int main(){
 
 	exit(0);
 }
-
+/******************************************************************************
+*Function executed by the thread that handles the peers.
+*
+******************************************************************************/
 void *connection_peer(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in peer_addr;
@@ -88,7 +92,7 @@ void *connection_peer(void *args){
 			exit(1);
 		printf("buff: type = %d\n", buff->type);
 		if(buff->type == 0){
-			//Save new peer in list
+			//Saves new peer in list
 			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -96,14 +100,17 @@ void *connection_peer(void *args){
 			ring_append(&peer_list, K);
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d \x1B[32madded to list\x1B[0m\n", K.addr, K.port);
-			//Send peer_list to new_peer
+			//Sends peer_list to new_peer
 			if( send_ring_udp(sock_fd_peer, &peer_addr, peer_list) == -1)
 				exit(1);
 			//Prints peer list
 			printf("*********Peers list***********\n");
+			pthread_mutex_lock(&list_lock);
 			ring_print(peer_list);
+			pthread_mutex_unlock(&list_lock);
 			printf("******************************\n");
 		}else if(buff->type == -1){
+			//Removes an exiting peer from the list
 			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -113,7 +120,9 @@ void *connection_peer(void *args){
 			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
 			//Prints peer list
 			printf("*********Peers list***********\n");
+			pthread_mutex_lock(&list_lock);
 			ring_print(peer_list);
+			pthread_mutex_unlock(&list_lock);
 			printf("******************************\n");
 		}else if(buff->type == 1){
 			++photo_id;
