@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <pthread.h>
+#include <errno.h>
 #include "msgs.h"
 #include "ring_list.h"
 
@@ -27,6 +28,7 @@ void kill_server(int n) {
 
 void *connection_peer(void *args);
 void *connection_client(void *args);
+int isOnline(item_r *peer);
 
 int main(){
 	//initializing peer list
@@ -161,8 +163,17 @@ void *connection_client(void *args){
 		if(recv_and_unstream_gw(sock_fd_client, &client_addr, buff) == -1)
 			exit(1);
 
+		pthread_mutex_lock(&list_lock);
 		item_r* aux = ring_first(&peer_list);
+		pthread_mutex_unlock(&list_lock);
 		if(aux != NULL){
+			// Checks if peer is still online, could have crashed
+			if(!isOnline(aux)){
+				// TODO Says to other peers that this peer is dead (será preciso?)
+				free(aux);
+				continue;
+			}
+			//Puts peer identification into struct to send to client
 			buff->type = 0;
 			strcpy(buff->addr, aux->K.addr);
 			buff->port = aux->K.port;

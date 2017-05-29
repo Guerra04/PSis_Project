@@ -86,7 +86,7 @@ void set_recv_timeout(int sock_fd, int secs, int usecs){
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff){
 	socklen_t size_addr = sizeof(*other_addr);
 	char *stream = malloc(sizeof(message_gw));
-	if( -1 == recvfrom(sock_fd, stream, sizeof(message_gw), 0,
+	if( 0 >= recvfrom(sock_fd, stream, sizeof(message_gw), 0,
 			(struct sockaddr *) other_addr, &size_addr)){
 				perror("Gateway communication (recv): ");
 				free(stream);
@@ -99,7 +99,8 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
-	if( recv_all(sock_fd, stream, sizeof(message_photo), 0) == -1 ){
+	//TODO mudar tudo isto para diferenciar close connection de erro
+	if( recv_all(sock_fd, stream, sizeof(message_photo), 0) <= 0 ){
 		//error receiving data
 		perror("Photo struct communication (recv): ");
 		return -1;
@@ -205,6 +206,35 @@ int send_list_tcp(int sock_fd, item *photo_list){
 	return 0;
 }
 
+/******************************************************************************
+ * Function that checks if a peer is online.
+ * Returns: 1 - if it is
+ * 			0 - if not
+ *****************************************************************************/
+int isOnline(item_r *peer){
+	int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (sock_fd == -1){
+		perror("socket: ");
+		exit(-1);
+	}
+
+	struct sockaddr_in server_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port= htons(peer->K.port);
+	inet_aton(peer->K.addr, &server_addr.sin_addr);
+	//connect sets errno to ECONNREFUSED if no one is listening on the remote address
+	connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr));
+	if(errno == ECONNREFUSED){
+		printf("[PeerLoss] Peer %s with port %d is not online\n", peer->K.addr, peer->K.port);
+		close(sock_fd);
+		return 0;
+	}
+
+	close(sock_fd);
+	return 1;
+}
+
 //Dummy functions for linked list
 data set_data(char* name, uint32_t id){
 	data K;
@@ -226,7 +256,7 @@ void print_data(data K){
 	printf("\n");
 	return;
 }
-
+//Dummy functions for ring list
 data_r set_data_r(char *addr, int port){
 	data_r K;
 	K.port = port;
@@ -234,7 +264,6 @@ data_r set_data_r(char *addr, int port){
 	return K;
 }
 
-//Dummy functions for ring list
 int equal_data_r(data_r K1, data_r K2){
 		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
 			return 1;

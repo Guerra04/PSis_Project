@@ -149,6 +149,7 @@ int main(int argc, char* argv[]){
 			perror("Creating thread: ");
 		}
 	}
+	DEBUG;
 	close(sock_fd);
 	exit(0);
 }
@@ -193,7 +194,7 @@ void *connection(void *client_fd){
 				send_photo(fd, msg, 0, NULL);
 				break;
 			case -1:
-				printf("Client broke connenction!\n");
+				printf("Client broke connection!\n");
 				close(fd);
 				pthread_exit(NULL);
 				break;
@@ -213,8 +214,8 @@ void *connection(void *client_fd){
 	}
 	printf("---------------------------------------------------\n");
 	printf("closing connectin with client\n");
-	//TODO nao fechar o peer quando o client fecha a ligação
 	close(fd);
+	pthread_exit(NULL);
 	return NULL;
 }
 
