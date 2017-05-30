@@ -31,10 +31,13 @@ typedef struct message_gw{
 *	4 - delete photo
 *	5 - get photo name
 *	6 - get photo (download)
-*	-1 - exiting
+*  -1 - exiting
 *********P2P types**********
 *	7 - recv new peer info
 *	8 - recv new peer info and send photo_list+photos
+*	9 - add photo (replication)
+*  10 - add keyword (replication)
+*  11 - delete photo (replication)
 ************************************/
 typedef struct message_photo{
 	char buffer[MAX_SIZE];
