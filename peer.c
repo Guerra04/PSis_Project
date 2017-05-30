@@ -42,10 +42,12 @@ void delete_photo(int fd, message_photo *msg);
 void send_photo_name(int fd, message_photo *msg);
 void send_photo(int fd, message_photo *msg, int isPeer, item* aux);
 int search_keyword(item *photo, char *keyword);
+int connect_peer(char * addr, in_port_t port);
 int notify_and_recv_photos();
 void register_peer(message_photo *msg);
 void send_all_photos(int fd, message_photo *msg);
 int notify_and_recv_photos(message_photo *msg);
+int photo_replication(int fd, message_photo *msg);
 
 void kill_server(int n) {
 	//Message to send to gateway letting it know that this peer terminated
@@ -205,6 +207,15 @@ void *connection(void *client_fd){
 				register_peer(msg);
 				send_all_photos(fd, msg);
 				break;
+			case 9:
+				photo_replication(fd, msg);
+				break;
+			case 10:
+				add_keyword(fd, msg);
+				break;
+			case 11:
+				delete_photo(fd, msg);
+				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
 				printf("%s\n", msg->buffer);
@@ -280,15 +291,39 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	}
 	fwrite(bytestream, size, 1, fp);//TODO writes all at once?
 	fclose(fp);
-	free(bytestream);
+
 	if(!isPeer){
 		//Sending photo id to client
 		if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
-			perror("Sending: ");
-			return -2;
+			perror("Sending id: ");
+			return -1;
 		}
+
+		//Broadcast (Replication)
+		pthread_mutex_lock(&peer_lock);
+		item_r *aux = peer_list->next;
+		while(aux != peer_list){
+			int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
+			//TODO check if is alive
+			//Send photo info
+			char *photo_info = malloc(sizeof(data));
+			memcpy(photo_info, &photo, sizeof(data));
+			/*Send message with type 9 to notify destiny peer that it's goind to
+			receive a photo*/
+			stream_and_send_photo(p2p_sock, "", 9);
+			//Send photo
+			item *send = malloc(sizeof(item));
+			send->K = photo;
+ 			send_photo(p2p_sock, msg, 1, send);
+			//close socket and go on the peer list
+			close(p2p_sock);
+			free(send);
+			aux = aux->next;
+		}
+		pthread_mutex_unlock(&peer_lock);
 	}
-	//TODO bcast to other peers
+
+	free(bytestream);
 	return id;
 }
 
@@ -308,7 +343,6 @@ void add_keyword(int fd, message_photo *msg){
 		success = -2;
 	}else{
 		if(aux->K.n_keywords < MAX_KEYWORDS){
-			//TODO bcast to all peers
 			pthread_mutex_lock(&photo_lock);
 			strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
 			pthread_mutex_unlock(&photo_lock);
@@ -317,9 +351,30 @@ void add_keyword(int fd, message_photo *msg){
 			success = -1;
 		}
 	}
-	if( send_all(fd, &success, sizeof(int), 0) == -1){
-		perror("Sending: ");
+
+	//Just answers and broadcasts if instruction comes from a client
+	if(msg->type != 10){
+
+		if( send_all(fd, &success, sizeof(int), 0) == -1){
+			perror("Sending: ");
+		}
+		if(success == 1){ //Broadcasts if keyword was succesfully inserted
+			pthread_mutex_lock(&peer_lock);
+			item_r *aux = peer_list->next;
+			while(aux != peer_list){
+				int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
+				//TODO check if is alive
+				//Send keyword
+				stream_and_send_photo(p2p_sock, msg->buffer, 10);
+
+				//close socket and go on the peer list
+				close(p2p_sock);
+				aux = aux->next;
+			}
+			pthread_mutex_unlock(&peer_lock);
+		}
 	}
+
 	return;
 }
 
@@ -377,16 +432,36 @@ void delete_photo(int fd, message_photo *msg){
 	pthread_mutex_lock(&photo_lock);
 	int found = list_remove(&photo_list, K);
 	pthread_mutex_unlock(&photo_lock);
-	if(found != 0){ //photo with sent id doesn't exist
+	if(found != 0){ //photo with sent id exists
 		//Removes photo from disk
 		char file_name[50];
 		sprintf(file_name,"%u", id);
 		unlink(file_name);
 		//TODO bcast to all peers
 	}
-	if( send_all(fd, &found, sizeof(int), 0) == -1){
-		perror("Sending: ");
+
+	//Just answers and broadcasts if instruction comes from a client
+	if(msg->type != 11){
+		if( send_all(fd, &found, sizeof(int), 0) == -1){
+			perror("Sending: ");
+		}
+		if(found != 0){ //Broadcasts if the photo to delete was found
+			pthread_mutex_lock(&peer_lock);
+			item_r *aux = peer_list->next;
+			while(aux != peer_list){
+				int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
+				//TODO check if is alive
+				//Send id to delete
+				stream_and_send_photo(p2p_sock, msg->buffer, 11);
+
+				//close socket and go on the peer list
+				close(p2p_sock);
+				aux = aux->next;
+			}
+			pthread_mutex_unlock(&peer_lock);
+		}
 	}
+
 	pthread_mutex_lock(&photo_lock);
 	list_print(photo_list);
 	pthread_mutex_unlock(&photo_lock);
@@ -456,6 +531,7 @@ void send_photo(int fd, message_photo *msg, int isPeer, item* aux){
 	if(isPeer){
 		char message[MAX_SIZE];
 		//message: photo name, photo size, photo id
+		//TODO se o nome tiver numeros isto funciona?
 		sprintf(message, "%s%lu.%u", photo.name, size, photo.id);
 		if(stream_and_send_photo(fd, message, 1) == -1)
 			exit(1);
@@ -595,4 +671,37 @@ void send_all_photos(int fd, message_photo *msg){
 	}
 	pthread_mutex_unlock(&photo_lock);
 	return;
+}
+
+int photo_replication(int fd, message_photo *msg){
+	//struct->size->photo
+	/*data photo;
+	memcpy(&photo, msg->buffer, sizeof(data));
+	pthread_mutex_lock(&photo_lock);
+	list_insert(&photo_list, photo);
+	pthread_mutex_unlock(&photo_lock);
+
+	long size=0;
+	if(recv_all(fd, &size, sizeof(long), 0) == -1){
+		perror("Receive size: ");
+		return -1;
+	}
+
+	char *bytestream = malloc(size*sizeof(char));
+	if(recv_all(fd, bytestream, size*sizeof(char), 0) == -1){
+		perror("Receive size: ");
+		return -1;
+	}
+
+	char photo_name[20];
+	sprintf(photo_name, "%u", photo.id);
+	FILE *fp;
+	if((fp = fopen( photo_name, "wb")) == NULL){
+		perror("Opening file to write");
+		exit(-1);
+	}
+	fwrite(bytestream, size, 1, fp);//TODO writes all at once?
+	fclose(fp);*/
+	recv_and_unstream_photo(fd, msg);
+	add_photo(fd, msg, 1);
 }
