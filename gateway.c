@@ -28,7 +28,7 @@ void kill_server(int n) {
 
 void *connection_peer(void *args);
 void *connection_client(void *args);
-int isOnline(item_r *peer);
+void broadcastPeers(char* message, int type, data_r *exc);
 
 int main(){
 	//initializing peer list
@@ -112,7 +112,7 @@ void *connection_peer(void *args){
 			pthread_mutex_unlock(&list_lock);
 			printf("******************************\n");
 		}else if(buff->type == -1){
-			//Removes an exiting peer from the list
+			//Removes peer that sent the message from the list
 			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -126,6 +126,28 @@ void *connection_peer(void *args){
 			ring_print(peer_list);
 			pthread_mutex_unlock(&list_lock);
 			printf("******************************\n");
+			// Broadcast to all peers
+			char message[30];
+			sprintf(message, "%s,%u" , K.addr, K.port);
+			broadcastPeers(message, 12, NULL);
+		}else if(buff->type == -2){
+			//Removes an exiting peer from the list (not the one that sent the message)
+			data_r K;
+			sscanf(buff->addr, "%[^,],%u", K.addr, &K.port);
+			pthread_mutex_lock(&list_lock);
+			ring_remove(&peer_list, K);
+			pthread_mutex_unlock(&list_lock);
+			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
+			//Prints peer list
+			printf("*********Peers list***********\n");
+			pthread_mutex_lock(&list_lock);
+			ring_print(peer_list);
+			pthread_mutex_unlock(&list_lock);
+			printf("******************************\n");
+			// Broadcast to other peers (excluding the one who sent the message)
+			K.port = buff->port;
+			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
+			broadcastPeers(buff->addr, 12, &K);
 		}else if(buff->type == 1){
 			++photo_id;
 			sendto(sock_fd_peer, &photo_id, sizeof(uint32_t), 0,
@@ -168,11 +190,17 @@ void *connection_client(void *args){
 		pthread_mutex_unlock(&list_lock);
 		if(aux != NULL){
 			// Checks if peer is still online, could have crashed
-			if(!isOnline(aux)){
-				// TODO Says to other peers that this peer is dead (será preciso?)
+			int fd_peer = 0;
+			if(!(fd_peer = isOnline(aux->K.addr, aux->K.port))){
+				// Broadcast to all peers that this one is dead
+				char message[30];
+				sprintf(message, "%s,%u" , aux->K.addr, aux->K.port);
+				broadcastPeers(message, 12, NULL);
+
 				free(aux);
 				continue;
 			}
+			close(fd_peer);
 			//Puts peer identification into struct to send to client
 			buff->type = 0;
 			strcpy(buff->addr, aux->K.addr);
@@ -193,3 +221,26 @@ void *connection_client(void *args){
 		}
 	}
 }
+
+void broadcastPeers(char* message, int type, data_r *exc){
+	pthread_mutex_lock(&list_lock);
+	item_r *aux = peer_list;
+	do{	// excludes the one that sent the message (if there is any)
+		if(exc == NULL || !equal_data_r(aux->K, *exc)){
+			int g2p_fd = 0;
+			if( (g2p_fd = isOnline(aux->K.addr, aux->K.port)) ){
+				stream_and_send_photo(g2p_fd, message, type);
+				close(g2p_fd);
+			}
+		aux = aux->next;
+
+		}
+	}while(aux != peer_list);
+	pthread_mutex_unlock(&list_lock);
+	return;
+}
+
+/* if in the process other peer is offline, gateway will receive
+ * a message that warns him of it, from the same peer that sent
+ * this message, so we don't have to exclude the offline peer right away */
+ //TODO tirar comment ^

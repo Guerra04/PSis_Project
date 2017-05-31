@@ -207,11 +207,11 @@ int send_list_tcp(int sock_fd, item *photo_list){
 }
 
 /******************************************************************************
- * Function that checks if a peer is online.
- * Returns: 1 - if it is
- * 			0 - if not
+ * Checks if someone is listening on the address host:port.
+ * Returns: TCP socket created if someone's listening.
+ * 			0 - if noone's listening
  *****************************************************************************/
-int isOnline(item_r *peer){
+int isOnline(char * host, in_port_t port){
 	int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (sock_fd == -1){
@@ -221,18 +221,17 @@ int isOnline(item_r *peer){
 
 	struct sockaddr_in server_addr;
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port= htons(peer->K.port);
-	inet_aton(peer->K.addr, &server_addr.sin_addr);
+	server_addr.sin_port= htons(port);
+	inet_aton(host, &server_addr.sin_addr);
 	//connect sets errno to ECONNREFUSED if no one is listening on the remote address
 	connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr));
 	if(errno == ECONNREFUSED){
-		printf("[PeerLoss] Peer %s with port %d is not online\n", peer->K.addr, peer->K.port);
+		printf("[PeerLoss] Peer %s with port %d is not online\n", host, port);
 		close(sock_fd);
 		return 0;
 	}
 
-	close(sock_fd);
-	return 1;
+	return sock_fd;
 }
 
 //Dummy functions for linked list

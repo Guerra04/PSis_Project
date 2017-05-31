@@ -47,7 +47,8 @@ int notify_and_recv_photos();
 void register_peer(message_photo *msg);
 void send_all_photos(int fd, message_photo *msg);
 int notify_and_recv_photos(message_photo *msg);
-int photo_replication(int fd, message_photo *msg);
+void photo_replication(int fd, message_photo *msg);
+void delete_peer(message_photo *msg);
 
 void kill_server(int n) {
 	//Message to send to gateway letting it know that this peer terminated
@@ -216,6 +217,9 @@ void *connection(void *client_fd){
 			case 11:
 				delete_photo(fd, msg);
 				break;
+			case 12:
+				delete_peer(msg);
+				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
 				printf("%s\n", msg->buffer);
@@ -317,7 +321,6 @@ int add_photo(int fd, message_photo *msg, int isPeer){
  			send_photo(p2p_sock, msg, 1, send);
 			//close socket and go on the peer list
 			close(p2p_sock);
-			free(send);
 			aux = aux->next;
 		}
 		pthread_mutex_unlock(&peer_lock);
@@ -437,11 +440,11 @@ void delete_photo(int fd, message_photo *msg){
 		char file_name[50];
 		sprintf(file_name,"%u", id);
 		unlink(file_name);
-		//TODO bcast to all peers
 	}
 
 	//Just answers and broadcasts if instruction comes from a client
 	if(msg->type != 11){
+		//Says to client if photo was found (and deleted) or not
 		if( send_all(fd, &found, sizeof(int), 0) == -1){
 			perror("Sending: ");
 		}
@@ -449,14 +452,26 @@ void delete_photo(int fd, message_photo *msg){
 			pthread_mutex_lock(&peer_lock);
 			item_r *aux = peer_list->next;
 			while(aux != peer_list){
-				int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
-				//TODO check if is alive
+				int p2p_sock = 0;
+				 if( (p2p_sock = isOnline(aux->K.addr, aux->K.port)) ){
 				//Send id to delete
 				stream_and_send_photo(p2p_sock, msg->buffer, 11);
 
 				//close socket and go on the peer list
 				close(p2p_sock);
+				}else{
+					// Warns Gateway about peer's death
+					char peer_id[30];
+					sprintf(peer_id, "%s,%u", aux->K.addr, aux->K.port);
+					if(stream_and_send_gw(sock_fd_gw, &server_addr, peer_id, PORT, -2) == -1)
+						exit(1);
+				}
+
 				aux = aux->next;
+				// removes peer from list if it's not online
+				if(p2p_sock == 0){
+					ring_remove(&peer_list, aux->prev->K);
+				}
 			}
 			pthread_mutex_unlock(&peer_lock);
 		}
@@ -673,7 +688,7 @@ void send_all_photos(int fd, message_photo *msg){
 	return;
 }
 
-int photo_replication(int fd, message_photo *msg){
+void photo_replication(int fd, message_photo *msg){
 	//struct->size->photo
 	/*data photo;
 	memcpy(&photo, msg->buffer, sizeof(data));
@@ -704,4 +719,38 @@ int photo_replication(int fd, message_photo *msg){
 	fclose(fp);*/
 	recv_and_unstream_photo(fd, msg);
 	add_photo(fd, msg, 1);
+}
+
+void delete_peer(message_photo *msg){
+	data_r K;
+	sscanf(msg->buffer, "%[^,],%u", K.addr, &K.port);
+	pthread_mutex_lock(&peer_lock);
+	ring_remove(&peer_list, K);
+	pthread_mutex_unlock(&peer_lock);
+	return;
+}
+
+void broadcastPeersAndNotify(char* message, int type, item* photo){
+	pthread_mutex_lock(&peer_lock);
+	item_r *aux = peer_list->next;
+	while(aux != peer_list){
+		int p2p_fd = 0;
+		if( (p2p_fd = isOnline(aux->K.addr, aux->K.port)) ){
+			stream_and_send_photo(p2p_fd, message, type);
+			if(photo != NULL){
+				//Send photo
+	 			send_photo(p2p_sock, NULL, 1, photo);
+			}
+			close(p2p_fd);
+		}else{
+			// Warns Gateway about peer's death
+			char peer_id[30];
+			sprintf(peer_id, "%s,%u", aux->K.addr, aux->K.port);
+			if(stream_and_send_gw(sock_fd_gw, &server_addr, peer_id, PORT, -2) == -1)
+				exit(1);
+		}
+		aux = aux->next;
+	}
+	pthread_mutex_unlock(&peer_lock);
+	return;
 }

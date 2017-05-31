@@ -10,13 +10,14 @@
 //gateway
 //type 1 - fetch photo id
 //type 0 - add peer
-//type -1 - delete peer
+//type -1 - delete this peer
+//type -2 - delete  peer
 //client
 //type 0 - ok
 //type 1 - no peers available
 typedef struct message_gw{
 	int type;
-	char addr[20];
+	char addr[30];
 	int port;
 } message_gw;
 
@@ -38,6 +39,8 @@ typedef struct message_gw{
 *	9 - add photo (replication)
 *  10 - add keyword (replication)
 *  11 - delete photo (replication)
+********GW to peer************
+*  12 - delete peer in buffer
 ************************************/
 typedef struct message_photo{
 	char buffer[MAX_SIZE];
@@ -65,3 +68,5 @@ int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list
 int recv_list_tcp(int sock_fd, item** list);
 
 int send_list_tcp(int sock_fd, item *photo_list);
+
+int isOnline(char * host, in_port_t port);
