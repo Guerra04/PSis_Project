@@ -49,7 +49,7 @@ void send_all_photos(int fd, message_photo *msg);
 int notify_and_recv_photos(message_photo *msg);
 void photo_replication(int fd, message_photo *msg);
 void delete_peer(message_photo *msg);
-void broadcastPeersAndNotify(char* message, int type, item* photo);
+int broadcastPeersAndNotify(char* message, int type, item* photo);
 void printPhotos();
 void printPeers();
 
@@ -99,11 +99,13 @@ int main(int argc, char* argv[]){
 	//sets timeout of recv(...)
 	set_recv_timeout(sock_fd_gw, 5, 0);
 	//Waits for list of peers
-	if( recv_ring_udp(sock_fd_gw, &peer_list) == -1)
-		exit(1);
-	if(errno == EAGAIN || errno == EWOULDBLOCK){
-		//timeout occured
-		printf("[ABORTING] The Gateway is not online\n");
+	if( recv_ring_udp(sock_fd_gw, &peer_list) == -1){
+		if(errno == EAGAIN || errno == EWOULDBLOCK){
+			//timeout occured
+			printf("[ABORTING] The Gateway is not online\n");
+			exit(1);
+		}
+		perror("Receiving from gateway");
 		exit(1);
 	}
 	//Puts root of peer_list referencing this peer's identification element
@@ -313,7 +315,9 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 		//Broadcast (Replication)
 		item *send = malloc(sizeof(item));
 		send->K = photo;
-		broadcastPeersAndNotify("", 9, send);
+		if(broadcastPeersAndNotify("", 9, send))
+			printPeers();
+
 		free(send);
 	}
 
@@ -352,7 +356,8 @@ void add_keyword(int fd, message_photo *msg){
 			perror("Sending: ");
 		}
 		if(success == 1){ //Broadcasts if keyword was succesfully inserted
-			broadcastPeersAndNotify(msg->buffer, 10, NULL);
+			if(broadcastPeersAndNotify(msg->buffer, 10, NULL))
+				printPeers();
 		}
 	}
 
@@ -427,7 +432,8 @@ void delete_photo(int fd, message_photo *msg){
 			perror("Sending: ");
 		}
 		if(found != 0){ //Broadcasts if the photo to delete was found
-			broadcastPeersAndNotify(msg->buffer, 11, NULL);
+			if(broadcastPeersAndNotify(msg->buffer, 11, NULL))
+				printPeers();
 		}
 	}
 
@@ -570,6 +576,7 @@ int notify_and_recv_photos(message_photo *msg){
 
 		item_r *aux = peer_list->next;
 		int has_photos = 0; //verify if peer has received the photos
+		//TODO passar para função broadcastPeers
 		while(aux != peer_list){
 			int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
 			if(!has_photos){// informs a peer that this one entered the system
@@ -682,7 +689,8 @@ void delete_peer(message_photo *msg){
 }
 
 //TODO verificar comunicações, se testes derem mal
-void broadcastPeersAndNotify(char* message, int type, item* photo){
+int broadcastPeersAndNotify(char* message, int type, item* photo){
+	int offline_peers = 0;
 	pthread_mutex_lock(&peer_lock);
 	item_r *aux = peer_list->next;
 	while(aux != peer_list){
@@ -705,10 +713,11 @@ void broadcastPeersAndNotify(char* message, int type, item* photo){
 		// removes peer from list if it's not online
 		if(p2p_fd == 0){
 			ring_remove(&peer_list, aux->prev->K);
+			offline_peers++;
 		}
 	}
 	pthread_mutex_unlock(&peer_lock);
-	return;
+	return offline_peers;
 }
 
 void printPhotos(){

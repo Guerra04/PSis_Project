@@ -224,11 +224,14 @@ int isOnline(char * host, in_port_t port){
 	server_addr.sin_port= htons(port);
 	inet_aton(host, &server_addr.sin_addr);
 	//connect sets errno to ECONNREFUSED if no one is listening on the remote address
-	connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr));
-	if(errno == ECONNREFUSED){
-		printf("[PeerLoss] Peer %s with port %d is not online\n", host, port);
-		close(sock_fd);
-		return 0;
+	if( connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr))==-1 ){
+		if(errno == ECONNREFUSED){
+			printf("[PeerLoss] Peer %s with port %d is not online\n", host, port);
+			close(sock_fd);
+			return 0;
+		}
+		perror("Connecting peer");
+		exit(1);
 	}
 
 	return sock_fd;
