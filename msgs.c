@@ -240,6 +240,9 @@ data set_data(char* name, uint32_t id){
 	strcpy(K.name, name);
 	K.id = id;
 	K.n_keywords = 0;
+	for(int i=0 ; i < MAX_KEYWORDS; i++){
+		K.keyword[i][0] = '\0';
+	}
 	return K;
 }
 
@@ -248,10 +251,10 @@ int equal_data(data K1, data K2){
 }
 
 void print_data(data K){
-	printf("photo: name = %s, id = %u, KW = ", K.name, K.id);
-	//TODO primeiro inicializar keywords
-	/*for(int i = 0; i < 20; i++)
-		printf("%s ", K.keyword[i]);*/
+	printf("photo: name = %s, id = %u, KW =", K.name, K.id);
+	for(int i = 0; i < K.n_keywords; i++){
+			printf(" %s ,", K.keyword[i]);
+	}
 	printf("\n");
 	return;
 }

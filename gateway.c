@@ -29,6 +29,7 @@ void kill_server(int n) {
 void *connection_peer(void *args);
 void *connection_client(void *args);
 void broadcastPeers(char* message, int type, data_r *exc);
+void printPeers();
 
 int main(){
 	//initializing peer list
@@ -106,11 +107,7 @@ void *connection_peer(void *args){
 			if( send_ring_udp(sock_fd_peer, &peer_addr, peer_list) == -1)
 				exit(1);
 			//Prints peer list
-			printf("*********Peers list***********\n");
-			pthread_mutex_lock(&list_lock);
-			ring_print(peer_list);
-			pthread_mutex_unlock(&list_lock);
-			printf("******************************\n");
+			printPeers();
 		}else if(buff->type == -1){
 			//Removes peer that sent the message from the list
 			data_r K;
@@ -121,11 +118,7 @@ void *connection_peer(void *args){
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
 			//Prints peer list
-			printf("*********Peers list***********\n");
-			pthread_mutex_lock(&list_lock);
-			ring_print(peer_list);
-			pthread_mutex_unlock(&list_lock);
-			printf("******************************\n");
+			printPeers();
 			// Broadcast to all peers
 			char message[30];
 			sprintf(message, "%s,%u" , K.addr, K.port);
@@ -139,11 +132,7 @@ void *connection_peer(void *args){
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
 			//Prints peer list
-			printf("*********Peers list***********\n");
-			pthread_mutex_lock(&list_lock);
-			ring_print(peer_list);
-			pthread_mutex_unlock(&list_lock);
-			printf("******************************\n");
+			printPeers();
 			// Broadcast to other peers (excluding the one who sent the message)
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -225,19 +214,30 @@ void *connection_client(void *args){
 void broadcastPeers(char* message, int type, data_r *exc){
 	pthread_mutex_lock(&list_lock);
 	item_r *aux = peer_list;
-	do{	// excludes the one that sent the message (if there is any)
-		if(exc == NULL || !equal_data_r(aux->K, *exc)){
-			int g2p_fd = 0;
-			if( (g2p_fd = isOnline(aux->K.addr, aux->K.port)) ){
-				stream_and_send_photo(g2p_fd, message, type);
-				close(g2p_fd);
-			}
-		aux = aux->next;
+	if(peer_list != NULL){
+		do{	// excludes the one that sent the message (if there is any)
+			if(exc == NULL || !equal_data_r(aux->K, *exc)){
+				int g2p_fd = 0;
+				if( (g2p_fd = isOnline(aux->K.addr, aux->K.port)) ){
+					stream_and_send_photo(g2p_fd, message, type);
+					close(g2p_fd);
+				}
+			aux = aux->next;
 
-		}
-	}while(aux != peer_list);
+			}
+		}while(aux != peer_list);
+	}
 	pthread_mutex_unlock(&list_lock);
 	return;
+}
+
+void printPeers(){
+	printf("[Updated!]\n");
+	printf("*********Peers list***********\n");
+	pthread_mutex_lock(&list_lock);
+	ring_print(peer_list);
+	pthread_mutex_unlock(&list_lock);
+	printf("*****************************\n");
 }
 
 /* if in the process other peer is offline, gateway will receive
