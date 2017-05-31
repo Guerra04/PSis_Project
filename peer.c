@@ -117,6 +117,7 @@ int main(int argc, char* argv[]){
 	if(notify_and_recv_photos(msg) == -1)
 		exit(1);
 	free(msg);
+	printPhotos();
 
 
 /*****************************SOCKET TCP*****************************/
