@@ -577,6 +577,7 @@ int notify_and_recv_photos(message_photo *msg){
 		item_r *aux = peer_list->next;
 		int has_photos = 0; //verify if peer has received the photos
 		//TODO passar para função broadcastPeers
+		//TODO as keywords nao sao replicadas
 		while(aux != peer_list){
 			int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
 			if(!has_photos){// informs a peer that this one entered the system
