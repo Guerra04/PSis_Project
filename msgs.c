@@ -70,7 +70,7 @@ int stream_and_send_photo(int fd, const char *buffer, int type){
 	if( send_all(fd, stream, sizeof(message_photo), 0) == -1){
 		perror("Photo struct communication (send): ");
 		return -1;
-	}
+	}//TODO print seand_all
 	free(stream);
 	return 0;
 }
