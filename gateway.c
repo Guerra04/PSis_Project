@@ -1,3 +1,4 @@
+//TODO deixar ponteiro peer_list no ultimo peer que foi dado, mas avançar antes de dar um peer a um novo client
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
@@ -177,30 +178,30 @@ void *connection_client(void *args){
 		int peer_found = 0;
 		//Searches for first online peer (more than one could have crashed)
 		while(!peer_found){
-			pthread_mutex_lock(&list_lock);
-			item_r* aux = ring_first(&peer_list);
-			pthread_mutex_unlock(&list_lock);
-			if(aux != NULL){
+			if(peer_list != NULL){
+				//CHANGED
+				peer_list = peer_list->next;
 				// Checks if peer is still online, could have crashed
 				int fd_peer = 0;
-				if(!(fd_peer = isOnline(aux->K.addr, aux->K.port))){
+				if(!(fd_peer = isOnline(peer_list->K.addr, peer_list->K.port))){
 					// Broadcast to all peers that this one is dead
 					char message[30];
-					sprintf(message, "%s,%u" , aux->K.addr, aux->K.port);
+					sprintf(message, "%s,%u" , peer_list->K.addr, peer_list->K.port);
 					broadcastPeers(message, 12, NULL);
 					printPeers();
-					free(aux);
+					//free(aux);
 					continue;
 				}
 				peer_found = 1;
 				close(fd_peer);
 				//Puts peer identification into struct to send to client
 				buff->type = 0;
-				strcpy(buff->addr, aux->K.addr);
-				buff->port = aux->K.port;
-				pthread_mutex_lock(&list_lock);
+				strcpy(buff->addr, peer_list->K.addr);
+				buff->port = peer_list->K.port;
+				//CHANGED
+				/*pthread_mutex_lock(&list_lock);
 				ring_append(&peer_list, aux->K);
-				pthread_mutex_unlock(&list_lock);
+				pthread_mutex_unlock(&list_lock);*/
 			}else{
 				buff->type = 1;
 				break;
