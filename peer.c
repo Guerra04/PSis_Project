@@ -206,6 +206,7 @@ void *connection(void *client_fd){
 			case -1:
 				printf("\x1B[31mClient broke connection!\x1B[0m\n");
 				close(fd);
+				free(msg);
 				pthread_exit(NULL);
 				break;
 			case 7:
@@ -241,6 +242,7 @@ void *connection(void *client_fd){
 		//printf("Sent message: %s\n", msg->buffer);
 	}
 	printf("---------------------------------------------------\n");
+	free(msg);
 	close(fd);
 	pthread_exit(NULL);
 	return NULL;
