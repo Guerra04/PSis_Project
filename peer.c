@@ -153,7 +153,8 @@ int main(int argc, char* argv[]){
 		if(pthread_create(&thread_id, NULL, connection, &client_fd) != 0){
 			perror("Creating thread: ");
 		}
-		DEBUG_THREAD("Master");
+		//TODO nanosleep 10 ms or so
+		//DEBUG_THREAD("Master");
 	}
 	DEBUG;
 	close(sock_fd);
@@ -173,10 +174,10 @@ void *connection(void *client_fd){
 	printf("---------------------------------------------------\n");
 	//CHANGED assim esta variavel já é local para cada thread, mas agora nao da pra fazer free
 	message_photo * msg = malloc(sizeof(message_photo));
-	DEBUG_THREAD("Other");
+	//DEBUG_THREAD("Other");
 	printf("%d\n", fd);
 	while(recv_and_unstream_photo(fd, msg) != EOF){
-		printf("Received message type = %d\n", msg->type);
+		//printf("Received message type = %d\n", msg->type);
 		switch(msg->type){
 			case 0:
 				testing_comm(fd, msg);
