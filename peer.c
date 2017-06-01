@@ -108,6 +108,9 @@ int main(int argc, char* argv[]){
 		perror("Receiving from gateway");
 		exit(1);
 	}
+	//Resets the timeout for the default
+	reset_recv_timeout(sock_fd_gw);
+	
 	//Puts root of peer_list referencing this peer's identification element
 	//(when the gateway adds this peer to the list, it adds it in the end)
 	peer_list = peer_list->prev;

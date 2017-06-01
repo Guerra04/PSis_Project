@@ -57,6 +57,8 @@ int stream_and_send_photo(int fd, const char *buffer, int type);
 
 void set_recv_timeout(int sock_fd, int secs, int usecs);
 
+void reset_recv_timeout(int sock_fd);
+
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff);
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff);

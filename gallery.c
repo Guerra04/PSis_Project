@@ -44,6 +44,9 @@ int gallery_connect(char * host, in_port_t port){
 		}
 		exit(1);
 	}
+	//Resets the timeout for the default
+	reset_recv_timeout(sock_fd_gw);
+	
 	printf("Received gateway info\n");
 	close(sock_fd_gw);
 	if( buff->type == 1){

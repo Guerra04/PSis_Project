@@ -83,6 +83,14 @@ void set_recv_timeout(int sock_fd, int secs, int usecs){
 		 (const char*)&tv,sizeof(struct timeval));
 }
 
+void reset_recv_timeout(int sock_fd){
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO,
+		 (const char*)&tv,sizeof(struct timeval));
+}
+
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff){
 	socklen_t size_addr = sizeof(*other_addr);
 	char *stream = malloc(sizeof(message_gw));
