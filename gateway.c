@@ -1,4 +1,3 @@
-//TODO deixar ponteiro peer_list no ultimo peer que foi dado, mas avançar antes de dar um peer a um novo client
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
@@ -66,10 +65,9 @@ int main(){
 
 	exit(0);
 }
-/******************************************************************************
-*Function executed by the thread that handles the peers.
-*
-******************************************************************************/
+/*****************************************************************************
+ * Routine of the thread that handles the peers
+ ****************************************************************************/
 void *connection_peer(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in peer_addr;
@@ -95,7 +93,7 @@ void *connection_peer(void *args){
 		//Receives and unstreams message from peer
 		if(recv_and_unstream_gw(sock_fd_peer, &peer_addr, buff) == -1)
 			exit(1);
-		printf("buff: type = %d\n", buff->type);
+
 		if(buff->type == 0){
 			//Saves new peer in list
 			data_r K;
@@ -111,7 +109,7 @@ void *connection_peer(void *args){
 			//Prints peer list
 			printPeers();
 		}else if(buff->type == -1){
-			//Removes peer that sent the message from the list
+			//Removes peer that sent the message, from the list
 			data_r K;
 			K.port = buff->port;
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
@@ -140,19 +138,22 @@ void *connection_peer(void *args){
 			strcpy(K.addr, inet_ntoa(peer_addr.sin_addr));
 			broadcastPeers(buff->addr, 12, &K);
 		}else if(buff->type == 1){
+			//Increments and sends unique photo id to the peer that requested it
 			++photo_id;
 			sendto(sock_fd_peer, &photo_id, sizeof(uint32_t), 0,
 				(const struct sockaddr *) &peer_addr, sizeof(peer_addr));
 		}else{
-			printf("That's the wrong number\n");
+			printf("Wrong type, something's wrong\n");
 		}
 	}
 }
-
+/*****************************************************************************
+ * Routine of the thread that handles the clients
+ ****************************************************************************/
 void *connection_client(void *args){
 	struct sockaddr_in local_addr;
 	struct sockaddr_in client_addr;
-
+	/************Socket creation and bind**********************/
 	sock_fd_client = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock_fd_client == -1){
 		perror("socket: ");
@@ -168,7 +169,7 @@ void *connection_client(void *args){
 		perror("bind");
 		exit(-1);
 	}
-
+	/************Socket creation and bind [END]**********************/
 	message_gw *buff = malloc(sizeof(message_gw));
 
 	while(1){
@@ -179,8 +180,10 @@ void *connection_client(void *args){
 		//Searches for first online peer (more than one could have crashed)
 		while(!peer_found){
 			if(peer_list != NULL){
-				//CHANGED
+				// round robin approach
+				pthread_mutex_lock(&list_lock);
 				peer_list = peer_list->next;
+				pthread_mutex_unlock(&list_lock);
 				// Checks if peer is still online, could have crashed
 				int fd_peer = 0;
 				if(!(fd_peer = isOnline(peer_list->K.addr, peer_list->K.port))){
@@ -198,16 +201,13 @@ void *connection_client(void *args){
 				buff->type = 0;
 				strcpy(buff->addr, peer_list->K.addr);
 				buff->port = peer_list->K.port;
-				//CHANGED
-				/*pthread_mutex_lock(&list_lock);
-				ring_append(&peer_list, aux->K);
-				pthread_mutex_unlock(&list_lock);*/
 			}else{
+				//There are no peers online
 				buff->type = 1;
 				break;
 			}
 		}
-		//printf("%p\n", aux);
+		//Send info to client
 		if(stream_and_send_gw(sock_fd_client, &client_addr, buff->addr,
 			buff->port, buff->type) == -1)
 				exit(1);
@@ -217,7 +217,10 @@ void *connection_client(void *args){
 		}
 	}
 }
-
+/*****************************************************************************
+ * Broadcasts message to all the peers in peer_list, it might exclude peer
+ * with data_r exc, if exc != NULL
+ ****************************************************************************/
 void broadcastPeers(char* message, int type, data_r *exc){
 	pthread_mutex_lock(&list_lock);
 	item_r *aux = peer_list;
@@ -237,7 +240,9 @@ void broadcastPeers(char* message, int type, data_r *exc){
 	pthread_mutex_unlock(&list_lock);
 	return;
 }
-
+/*****************************************************************************
+ * Prints peer_list
+ ****************************************************************************/
 void printPeers(){
 	printf("\x1B[32m[Updated!]\n");
 	printf("\x1B[33m*********Peers list***********\n");
@@ -246,8 +251,3 @@ void printPeers(){
 	pthread_mutex_unlock(&list_lock);
 	printf("*****************************\x1B[0m\n");
 }
-
-/* if in the process other peer is offline, gateway will receive
- * a message that warns him of it, from the same peer that sent
- * this message, so we don't have to exclude the offline peer right away */
- //TODO tirar comment ^

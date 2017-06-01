@@ -60,7 +60,6 @@ void kill_server(int n) {
 	//Message to send to gateway letting it know that this peer terminated
 	if(stream_and_send_gw(sock_fd_gw, &server_addr, peer_list->K.addr, PORT, -1) == -1)
 		exit(1);
-	//TODO let the other peers know too
 	close(sock_fd);
 	close(sock_fd_gw);
 	pthread_mutex_lock(&photo_lock);
