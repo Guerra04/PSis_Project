@@ -21,6 +21,8 @@
 #define MAX_PHOTOS 100
 
 #define DEBUG printf("aqui\n")
+#define DEBUG_THREAD(thread) printf("%s thread = %lu\n", thread, pthread_self());
+
 //int client_fd;
 int sock_fd;
 int sock_fd_gw;
@@ -86,8 +88,6 @@ int main(int argc, char* argv[]){
 		exit(-1);
 	}
 
-	printf(" socket created \n Ready to send\n");
-
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(KNOWN_PORT_PEER);
 	inet_aton(KNOWN_IP, &server_addr.sin_addr);
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]){
 	}
 	//Resets the timeout for the default
 	reset_recv_timeout(sock_fd_gw);
-	
+
 	//Puts root of peer_list referencing this peer's identification element
 	//(when the gateway adds this peer to the list, it adds it in the end)
 	peer_list = peer_list->prev;
@@ -143,19 +143,17 @@ int main(int argc, char* argv[]){
 		perror("bind");
 		exit(-1);
 	}
-	printf(" socket created and binded \n");
 
 	listen(sock_fd, 5);
-
-	printf("Ready to accept connections\n");
+	int client_fd;
 	while(1){
-		int client_fd;
 		client_fd = accept(sock_fd, (struct sockaddr *) & client_addr, &size_addr);
 		pthread_t thread_id;
 
 		if(pthread_create(&thread_id, NULL, connection, &client_fd) != 0){
 			perror("Creating thread: ");
 		}
+		DEBUG_THREAD("Master");
 	}
 	DEBUG;
 	close(sock_fd);
@@ -171,12 +169,12 @@ void strupr(char * line){
 }
 
 void *connection(void *client_fd){
-	//printf("Accepted one connection from %s \n", inet_ntoa(client_addr.sin_addr));
-	printf("Accepted one connection\n");
-	printf("---------------------------------------------------\n");
 	int fd = *(int*)client_fd;
+	printf("---------------------------------------------------\n");
 	//CHANGED assim esta variavel já é local para cada thread, mas agora nao da pra fazer free
 	message_photo * msg = malloc(sizeof(message_photo));
+	DEBUG_THREAD("Other");
+	printf("%d\n", fd);
 	while(recv_and_unstream_photo(fd, msg) != EOF){
 		printf("Received message type = %d\n", msg->type);
 		switch(msg->type){
@@ -205,7 +203,7 @@ void *connection(void *client_fd){
 				send_photo(fd, msg, 0, NULL);
 				break;
 			case -1:
-				printf("Client broke connection!\n");
+				printf("\x1B[31mClient broke connection!\x1B[0m\n");
 				close(fd);
 				pthread_exit(NULL);
 				break;
@@ -239,10 +237,9 @@ void *connection(void *client_fd){
 				printf("%s\n", msg->buffer);
 		}
 		//ECHO of the reply
-		printf("Sent message: %s\n", msg->buffer);
+		//printf("Sent message: %s\n", msg->buffer);
 	}
 	printf("---------------------------------------------------\n");
-	printf("closing connectin with client\n");
 	close(fd);
 	pthread_exit(NULL);
 	return NULL;
@@ -752,19 +749,19 @@ int broadcastPeersAndNotify(char* message, int type, item* photo){
 }
 
 void printPhotos(){
-	printf("[Updated!]\n");
-	printf("===========Photos==========\n");
+	printf("\x1B[32m[Updated!]\n");
+	printf("\x1B[36m===========Photos==========\n");
 	pthread_mutex_lock(&photo_lock);
 	list_print(photo_list);
 	pthread_mutex_unlock(&photo_lock);
-	printf("===========================\n");
+	printf("===========================\x1B[0m\n");
 }
 
 void printPeers(){
-	printf("[Updated!]\n");
-	printf("*********Peers list***********\n");
+	printf("\x1B[32m[Updated!]\n");
+	printf("\x1B[33m*********Peers list***********\n");
 	pthread_mutex_lock(&peer_lock);
 	ring_print(peer_list);
 	pthread_mutex_unlock(&peer_lock);
-	printf("*****************************\n");
+	printf("*****************************\x1B[0m\n");
 }

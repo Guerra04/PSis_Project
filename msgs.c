@@ -12,6 +12,8 @@
 #include <time.h>
 #include "msgs.h"
 
+#define DEBUG printf("aqui\n")
+
 
 int send_all(int socket, const void *buffer, size_t length, int flags){
 	ssize_t nbytes;
@@ -94,28 +96,37 @@ void reset_recv_timeout(int sock_fd){
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff){
 	socklen_t size_addr = sizeof(*other_addr);
 	char *stream = malloc(sizeof(message_gw));
-	if( 0 >= recvfrom(sock_fd, stream, sizeof(message_gw), 0,
-			(struct sockaddr *) other_addr, &size_addr)){
-				perror("Gateway communication (recv): ");
-				free(stream);
-				return -1;
-			}
+	int read = recvfrom(sock_fd, stream, sizeof(message_gw), 0,
+			(struct sockaddr *) other_addr, &size_addr);
+	if(read == -1){
+		perror("Gateway communication (recv): ");
+		free(stream);
+		return -1;
+	}else if(read == 0){
+		free(stream);
+		return 0;
+	}
 	memcpy(buff, stream, sizeof(message_gw));
 	free(stream);
-	return 0;
+	return 1;
 }
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
 	//TODO mudar tudo isto para diferenciar close connection de erro
-	if( recv_all(sock_fd, stream, sizeof(message_photo), 0) <= 0 ){
+	int read = recv_all(sock_fd, stream, sizeof(message_photo), 0);
+	if(read == -1){
 		//error receiving data
+		free(stream);
 		perror("Photo struct communication (recv): ");
+		return -1;
+	}else if(read == 0){
+		free(stream);
 		return -1;
 	}
 	memcpy(buff, stream, sizeof(message_photo));
 	free(stream);
-	return 0;
+	return 1;
 }
 
 int recv_ring_udp(int sock_fd, item_r **peer_list){

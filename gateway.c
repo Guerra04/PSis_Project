@@ -53,6 +53,8 @@ int main(){
 	if(pthread_create(&thread_client, NULL, connection_client, NULL) != 0){
 		perror("Fail creating thread_client\n");
 	}
+
+	printf("\x1B[32mGateway up and running\x1B[0m\n");
 	/*When one of the 3 threads handles the SIG_INT
 	* the main one closes all connections and frees all alocated memory*/
 	while(!sigint);
@@ -87,7 +89,6 @@ void *connection_peer(void *args){
 		perror("bind: ");
 		exit(-1);
 	}
-	printf(" socket created and binded \n Ready to receive messages\n");
 
 	message_gw *buff = malloc(sizeof(message_gw));
 	while(1){
@@ -117,7 +118,7 @@ void *connection_peer(void *args){
 			pthread_mutex_lock(&list_lock);
 			ring_remove(&peer_list, K);
 			pthread_mutex_unlock(&list_lock);
-			printf("Server %s with port %d r\x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
+			printf("Server %s with port %d \x1B[31mremoved from list\x1B[0m\n", K.addr, K.port);
 			//Prints peer list
 			printPeers();
 			// Broadcast to all peers
@@ -167,7 +168,6 @@ void *connection_client(void *args){
 		perror("bind");
 		exit(-1);
 	}
-	printf(" socket created and binded \n Ready to receive messages\n");
 
 	message_gw *buff = malloc(sizeof(message_gw));
 
@@ -239,12 +239,12 @@ void broadcastPeers(char* message, int type, data_r *exc){
 }
 
 void printPeers(){
-	printf("[Updated!]\n");
-	printf("*********Peers list***********\n");
+	printf("\x1B[32m[Updated!]\n");
+	printf("\x1B[33m*********Peers list***********\n");
 	pthread_mutex_lock(&list_lock);
 	ring_print(peer_list);
 	pthread_mutex_unlock(&list_lock);
-	printf("*****************************\n");
+	printf("*****************************\x1B[0m\n");
 }
 
 /* if in the process other peer is offline, gateway will receive

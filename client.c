@@ -53,7 +53,7 @@ int main(int argc, char* argv[]){
 				exit(0);
 				break;
 			default:
-				printf("Connection to Peer successful\n");
+				printf("\x1B[32mConnection to Peer successful\x1B[0m\n");
 		}
 	/*****************************MENU*****************************/
 		printf("---------------------------------------------------\n");
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
 			//Menu message
 			printf("---------------------------------------------------");
 			printf("\nPlease enter your command\n");
-			printf("[%s]\n\n", COMMANDS);
+			printf("[%s]\n\n> ", COMMANDS);
 
 			//(Re)initializing
 			strcpy(command,"");
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]){
 					if(photo_id){
 						printf("\x1B[32mUploading successful:\x1B[0m photo_id = %u\n", photo_id);
 					}else{
-						printf("Error uploading photo!\n");
+						printf("\x1B[31mError uploading photo!\x1B[0m\n");
 					}
 				}else{
 					usage("add <filename>");
@@ -96,9 +96,9 @@ int main(int argc, char* argv[]){
 					if(success == 1){
 						printf("Keyword '%s' added \x1B[32msuccesfully!\x1B[0m\n", keyword);
 					}else if(success == 0){
-						printf("Communication error\n");
+						printf("\x1B[31mCommunication error\x1B[0m\n");
 					}else if(success == -1){
-						printf("Keyword list already full\n");
+						printf("\x1B[31mKeyword list already full\x1B[0m\n");
 					}else if(success == -2){
 						printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 					}
@@ -113,15 +113,15 @@ int main(int argc, char* argv[]){
 					uint32_t *id_photos;
 					int length = gallery_search_photo(fd, arg, &id_photos);
 					if(length > 0){
-						printf("%d photo(s) found with keyword '%s'!\n", length, arg);
+						printf("\x1B[32m%d photo(s) found\x1B[0m with keyword '%s'!\n", length, arg);
 						printf("ID(s) of the photo(s):\n");
 						for(int i = 0; i < length; i++){
 							printf("---%d: %u\n", i+1, id_photos[i]);
 						}
 					}else if(length == 0){
-						printf("No photo found with keyword '%s'\n", arg);
+						printf("\x1B[31mNo photo found\x1B[0m with keyword '%s'\n", arg);
 					}else if(length == -1){
-						printf("Communication error\n");
+						printf("\x1B[31mCommunication error\x1B[0m\n");
 					}
 				}else{
 					usage("search <keyword>");
@@ -150,7 +150,7 @@ int main(int argc, char* argv[]){
 					char *photo_name;
 					int success = gallery_get_photo_name(fd, photo_id, &photo_name);
 					if(success == 1){
-						printf("Photo with id = %u has name: %s\n", photo_id, photo_name);
+						printf("Photo with id = %u has name: \x1B[36m%s\x1B[0m\n", photo_id, photo_name);
 					}else if(success == 0){
 						printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 					}
@@ -169,7 +169,7 @@ int main(int argc, char* argv[]){
 					}else if(success == 0){
 						printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
 					}else if(success == -1){
-						printf("Communication error\n");
+						printf("\x1B[31mCommunication error\x1B[0m\n");
 					}
 				}else{
 					usage("downlaod <photo_id> <file_name>, [photo_id > 0]");
