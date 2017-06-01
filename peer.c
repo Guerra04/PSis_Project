@@ -2,6 +2,7 @@
 #include <sys/un.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -144,6 +145,11 @@ int main(int argc, char* argv[]){
 		exit(-1);
 	}
 
+	//nanosleep of 10ms
+	struct timespec sleep;
+	sleep.tv_sec = 0;			/* seconds */
+	sleep.tv_nsec = 10000000;   /* nanoseconds */
+
 	listen(sock_fd, 5);
 	int client_fd;
 	while(1){
@@ -153,10 +159,11 @@ int main(int argc, char* argv[]){
 		if(pthread_create(&thread_id, NULL, connection, &client_fd) != 0){
 			perror("Creating thread: ");
 		}
-		//TODO nanosleep 10 ms or so
-		//DEBUG_THREAD("Master");
+
+		/*nanosleep of 10ms to ensure that if two accepts are made at the same
+		time the client_fd isnt changed*/
+		nanosleep(&sleep, NULL);
 	}
-	DEBUG;
 	close(sock_fd);
 	exit(0);
 }
@@ -258,15 +265,14 @@ void testing_comm(int fd, message_photo *msg){
 
 int add_photo(int fd, message_photo *msg, int isPeer){
 	char name[MAX_SIZE];
-	char ext[10];
 	long size=0;
 	uint32_t id=0;
 	int n_keywords = 0;
 	char photo_name[MAX_SIZE];
 	if(isPeer)
-		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu.%u.%d", name, ext, &size, &id, &n_keywords);
+		sscanf(msg->buffer,"%[^,],%lu.%u.%d", name, &size, &id, &n_keywords);
 	else
-		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
+		sscanf(msg->buffer,"%[^,],%lu", name, &size);
 
 	if(!isPeer){
 		//Asks Gateway for a new id
@@ -283,8 +289,7 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 
 	//Saving photo characteristics in list
 	data photo;
-	sprintf(photo_name, "%s.%s", name, ext);
-	photo = set_data(photo_name, id);
+	photo = set_data(name, id);
 	if(isPeer && n_keywords > 0){
 		char *keywords = malloc(MAX_KEYWORDS*SIZE*sizeof(char));
 		memset(keywords, '\0', MAX_KEYWORDS*SIZE*sizeof(char));
@@ -292,7 +297,7 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 			exit(1);
 		//separate and store keywords
 		char *keyword;
-		while((keyword = strsep(&keywords, "."))){
+		while((keyword = strsep(&keywords, " "))){
 			if(strcmp(keyword, "") != 0){
 				strcpy(photo.keyword[photo.n_keywords],keyword);
 				photo.n_keywords++;
@@ -471,8 +476,9 @@ void send_photo_name(int fd, message_photo *msg){
 	pthread_mutex_unlock(&photo_lock);
 
 	int length = 0;
-	if(aux != NULL) //photo exists
-		length = strlen(aux->K.name) + 1; //strlen doesn't count with '\0'
+	if(aux != NULL){ //photo exists
+		length = strlen(aux->K.name)+1; //strlen doesn't count with '\0'
+	}
 	//send length of the photo name
 	if( send_all(fd, &length, sizeof(int), 0) == -1){
 		perror("Sending: ");
@@ -480,7 +486,7 @@ void send_photo_name(int fd, message_photo *msg){
 
 	//send photo name
 	if(length > 0){
-		if( send_all(fd, aux->K.name, length+1, 0) == -1){
+		if( send_all(fd, aux->K.name, length, 0) == -1){
 			perror("Sending: ");
 		}
 	}
@@ -501,7 +507,8 @@ void send_photo(int fd, message_photo *msg, int isPeer, item* aux){
 		pthread_mutex_lock(&photo_lock);
 		aux = list_search(&photo_list, K);
 		pthread_mutex_unlock(&photo_lock);
-		photo = aux->K;
+		if(aux != NULL)
+			photo = aux->K;
 	}
 
 	FILE *fp;
@@ -524,7 +531,7 @@ void send_photo(int fd, message_photo *msg, int isPeer, item* aux){
 		char message[MAX_SIZE];
 		//message: photo name, photo size, photo id
 		//TODO se o nome tiver numeros isto funciona?
-		sprintf(message, "%s%lu.%u.%d", photo.name, size, photo.id, photo.n_keywords);
+		sprintf(message, "%s,%lu.%u.%d", photo.name, size, photo.id, photo.n_keywords);
 		if(stream_and_send_photo(fd, message, 1) == -1)
 			exit(1);
 		if(photo.n_keywords > 0){
@@ -533,7 +540,7 @@ void send_photo(int fd, message_photo *msg, int isPeer, item* aux){
 			memset(keywords, '\0', aux->K.n_keywords*SIZE);
 			for(int i = 0; i < aux->K.n_keywords;i++){
 				strcat(keywords, aux->K.keyword[i]);
-				strcat(keywords, ".");
+				strcat(keywords, " ");
 			}
 			//send keywords
 			if(send_all(fd, keywords, aux->K.n_keywords*SIZE, 0) == -1)

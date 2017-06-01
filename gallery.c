@@ -66,7 +66,7 @@ int gallery_connect(char * host, in_port_t port){
 	server_addr.sin_port= htons(buff->port);
 	inet_aton(buff->addr, &server_addr.sin_addr);
 	free(buff);
-	
+
 	if( -1 == connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr))){
 		perror("Connecting to Peer: ");
 		exit(-1);
@@ -94,7 +94,7 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	//Send photo size and name
 	char *name_and_size;
 	char temp[20];
-	sprintf(temp, "%lu",file_size); // file_size to char
+	sprintf(temp, ",%lu",file_size); // file_size to char
 	name_and_size = strcat(file,temp);
 	if(stream_and_send_photo(sock_peer, name_and_size, 1) == -1)
 		return 0;
@@ -219,7 +219,7 @@ int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name
 
 	//Receive the length of the name
 	int length = 0;
-	if( recv(peer_socket, &length, sizeof(int), 0) == -1){
+	if(recv_all(peer_socket, &length, sizeof(int), 0) == -1){
 		//error receiving data
 		perror("Communication: ");
 		return -1;
@@ -229,7 +229,7 @@ int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name
 		return 0;
 	}else{
 		(*photo_name) = malloc(length * sizeof(char));
-		if( recv(peer_socket, (*photo_name), length*sizeof(char), 0) == -1){
+		if(recv_all(peer_socket, (*photo_name), length*sizeof(char), 0) == -1){
 			//error receiving data
 			perror("Communication: ");
 			return -1;
