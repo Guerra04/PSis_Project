@@ -49,7 +49,7 @@ void send_all_photos(int fd, message_photo *msg);
 int notify_and_recv_photos(message_photo *msg);
 void photo_replication(int fd, message_photo *msg);
 void delete_peer(message_photo *msg);
-void broadcastPeersAndNotify(char* message, int type, item* photo);
+int broadcastPeersAndNotify(char* message, int type, item* photo);
 void printPhotos();
 void printPeers();
 
@@ -99,11 +99,13 @@ int main(int argc, char* argv[]){
 	//sets timeout of recv(...)
 	set_recv_timeout(sock_fd_gw, 5, 0);
 	//Waits for list of peers
-	if( recv_ring_udp(sock_fd_gw, &peer_list) == -1)
-		exit(1);
-	if(errno == EAGAIN || errno == EWOULDBLOCK){
-		//timeout occured
-		printf("[ABORTING] The Gateway is not online\n");
+	if(recv_ring_udp(sock_fd_gw, &peer_list) == -1){
+		if(errno == EAGAIN || errno == EWOULDBLOCK){
+			//timeout occured
+			printf("[ABORTING] The Gateway is not online\n");
+			exit(1);
+		}
+		perror("Receiving from gateway");
 		exit(1);
 	}
 	//Puts root of peer_list referencing this peer's identification element
@@ -258,18 +260,12 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	char ext[10];
 	long size=0;
 	uint32_t id=0;
+	int n_keywords = 0;
 	char photo_name[MAX_SIZE];
 	if(isPeer)
-		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu.%u", name, ext, &size, &id);
+		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu.%u.%d", name, ext, &size, &id, &n_keywords);
 	else
 		sscanf(msg->buffer,"%[^.].%[^01233456789]%lu", name, ext, &size);
-
-	//Receive photo
-	char *bytestream = malloc(size*sizeof(char));
-	if(recv_all(fd, bytestream, size, 0) <= 0){
-		perror("Receiving: ");
-		return -1;
-	}
 
 	if(!isPeer){
 		//Asks Gateway for a new id
@@ -288,9 +284,31 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	data photo;
 	sprintf(photo_name, "%s.%s", name, ext);
 	photo = set_data(photo_name, id);
+	if(isPeer && n_keywords > 0){
+		char *keywords = malloc(MAX_KEYWORDS*SIZE*sizeof(char));
+		memset(keywords, '\0', MAX_KEYWORDS*SIZE*sizeof(char));
+		if(recv_all(fd, keywords, n_keywords*SIZE*sizeof(char), 0) == -1)
+			exit(1);
+		//separate and store keywords
+		char *keyword;
+		while((keyword = strsep(&keywords, "."))){
+			if(strcmp(keyword, "") != 0){
+				strcpy(photo.keyword[photo.n_keywords],keyword);
+				photo.n_keywords++;
+			}
+		}
+		free(keywords);
+	}
 	pthread_mutex_lock(&photo_lock);
 	list_insert(&photo_list, photo);
 	pthread_mutex_unlock(&photo_lock);
+
+	//Receive photo
+	char *bytestream = malloc(size*sizeof(char));
+	if(recv_all(fd, bytestream, size, 0) <= 0){
+		perror("Receiving: ");
+		return -1;
+	}
 
 	//Saving photo in disk
 	sprintf(photo_name, "%u", id);
@@ -313,7 +331,9 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 		//Broadcast (Replication)
 		item *send = malloc(sizeof(item));
 		send->K = photo;
-		broadcastPeersAndNotify("", 9, send);
+		if(broadcastPeersAndNotify("", 9, send))
+			printPeers();
+
 		free(send);
 	}
 
@@ -352,7 +372,8 @@ void add_keyword(int fd, message_photo *msg){
 			perror("Sending: ");
 		}
 		if(success == 1){ //Broadcasts if keyword was succesfully inserted
-			broadcastPeersAndNotify(msg->buffer, 10, NULL);
+			if(broadcastPeersAndNotify(msg->buffer, 10, NULL))
+				printPeers();
 		}
 	}
 
@@ -427,7 +448,8 @@ void delete_photo(int fd, message_photo *msg){
 			perror("Sending: ");
 		}
 		if(found != 0){ //Broadcasts if the photo to delete was found
-			broadcastPeersAndNotify(msg->buffer, 11, NULL);
+			if(broadcastPeersAndNotify(msg->buffer, 11, NULL))
+				printPeers();
 		}
 	}
 
@@ -501,9 +523,21 @@ void send_photo(int fd, message_photo *msg, int isPeer, item* aux){
 		char message[MAX_SIZE];
 		//message: photo name, photo size, photo id
 		//TODO se o nome tiver numeros isto funciona?
-		sprintf(message, "%s%lu.%u", photo.name, size, photo.id);
+		sprintf(message, "%s%lu.%u.%d", photo.name, size, photo.id, photo.n_keywords);
 		if(stream_and_send_photo(fd, message, 1) == -1)
 			exit(1);
+		if(photo.n_keywords > 0){
+			//Concatenate keywords into one string
+			char keywords[aux->K.n_keywords*SIZE];
+			memset(keywords, '\0', aux->K.n_keywords*SIZE);
+			for(int i = 0; i < aux->K.n_keywords;i++){
+				strcat(keywords, aux->K.keyword[i]);
+				strcat(keywords, ".");
+			}
+			//send keywords
+			if(send_all(fd, keywords, aux->K.n_keywords*SIZE, 0) == -1)
+				exit(1);
+		}
 	}else{
 		//Send size of the photo
 		if(send_all(fd, &size, sizeof(long), 0) == -1){
@@ -570,6 +604,7 @@ int notify_and_recv_photos(message_photo *msg){
 
 		item_r *aux = peer_list->next;
 		int has_photos = 0; //verify if peer has received the photos
+		//TODO passar para função broadcastPeers
 		while(aux != peer_list){
 			int p2p_sock = connect_peer(aux->K.addr, aux->K.port);
 			if(!has_photos){// informs a peer that this one entered the system
@@ -682,7 +717,8 @@ void delete_peer(message_photo *msg){
 }
 
 //TODO verificar comunicações, se testes derem mal
-void broadcastPeersAndNotify(char* message, int type, item* photo){
+int broadcastPeersAndNotify(char* message, int type, item* photo){
+	int offline_peers = 0;
 	pthread_mutex_lock(&peer_lock);
 	item_r *aux = peer_list->next;
 	while(aux != peer_list){
@@ -705,10 +741,11 @@ void broadcastPeersAndNotify(char* message, int type, item* photo){
 		// removes peer from list if it's not online
 		if(p2p_fd == 0){
 			ring_remove(&peer_list, aux->prev->K);
+			offline_peers++;
 		}
 	}
 	pthread_mutex_unlock(&peer_lock);
-	return;
+	return offline_peers;
 }
 
 void printPhotos(){

@@ -37,10 +37,12 @@ int gallery_connect(char * host, in_port_t port){
 	//sets timeout of recv(...)
 	set_recv_timeout(sock_fd_gw, 5, 0);
 	message_gw *buff = malloc(sizeof(message_gw));
-	recv_and_unstream_gw(sock_fd_gw, &server_gw_addr, buff);
-	if(errno == EAGAIN || errno == EWOULDBLOCK){
-		//timeout occured
-		return -1;
+	if( recv_and_unstream_gw(sock_fd_gw, &server_gw_addr, buff)==-1 ){
+		if(errno == EAGAIN || errno == EWOULDBLOCK){
+			//timeout occured
+			return -1;
+		}
+		exit(1);
 	}
 	printf("Received gateway info\n");
 	close(sock_fd_gw);
@@ -195,7 +197,7 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
 	if( recv(peer_socket, &success, sizeof(int), 0) == -1){
 		//error receiving data
 		perror("Communication: ");
-		return 0;
+		return -1;
 	}
 
 	return success;
