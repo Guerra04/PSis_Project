@@ -44,7 +44,9 @@ int gallery_connect(char * host, in_port_t port){
 		}
 		exit(1);
 	}
-	printf("Received gateway info\n");
+	//Resets the timeout for the default
+	reset_recv_timeout(sock_fd_gw);
+
 	close(sock_fd_gw);
 	if( buff->type == 1){
 		//no Peer is available
@@ -63,12 +65,10 @@ int gallery_connect(char * host, in_port_t port){
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port= htons(buff->port);
 	inet_aton(buff->addr, &server_addr.sin_addr);
-	DEBUG_PEER(buff->addr, buff->port);
 	free(buff);
-
+	
 	if( -1 == connect(sock_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr))){
 		perror("Connecting to Peer: ");
-		printf("%d\n",errno );
 		exit(-1);
 	}
 

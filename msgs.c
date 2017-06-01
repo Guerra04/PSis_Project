@@ -12,6 +12,8 @@
 #include <time.h>
 #include "msgs.h"
 
+#define DEBUG printf("aqui\n")
+
 
 int send_all(int socket, const void *buffer, size_t length, int flags){
 	ssize_t nbytes;
@@ -70,7 +72,7 @@ int stream_and_send_photo(int fd, const char *buffer, int type){
 	if( send_all(fd, stream, sizeof(message_photo), 0) == -1){
 		perror("Photo struct communication (send): ");
 		return -1;
-	}
+	}//TODO print seand_all
 	free(stream);
 	return 0;
 }
@@ -83,31 +85,48 @@ void set_recv_timeout(int sock_fd, int secs, int usecs){
 		 (const char*)&tv,sizeof(struct timeval));
 }
 
+void reset_recv_timeout(int sock_fd){
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO,
+		 (const char*)&tv,sizeof(struct timeval));
+}
+
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff){
 	socklen_t size_addr = sizeof(*other_addr);
 	char *stream = malloc(sizeof(message_gw));
-	if( 0 >= recvfrom(sock_fd, stream, sizeof(message_gw), 0,
-			(struct sockaddr *) other_addr, &size_addr)){
-				perror("Gateway communication (recv): ");
-				free(stream);
-				return -1;
-			}
+	int read = recvfrom(sock_fd, stream, sizeof(message_gw), 0,
+			(struct sockaddr *) other_addr, &size_addr);
+	if(read == -1){
+		perror("Gateway communication (recv): ");
+		free(stream);
+		return -1;
+	}else if(read == 0){
+		free(stream);
+		return 0;
+	}
 	memcpy(buff, stream, sizeof(message_gw));
 	free(stream);
-	return 0;
+	return 1;
 }
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
 	//TODO mudar tudo isto para diferenciar close connection de erro
-	if( recv_all(sock_fd, stream, sizeof(message_photo), 0) <= 0 ){
+	int read = recv_all(sock_fd, stream, sizeof(message_photo), 0);
+	if(read == -1){
 		//error receiving data
+		free(stream);
 		perror("Photo struct communication (recv): ");
+		return -1;
+	}else if(read == 0){
+		free(stream);
 		return -1;
 	}
 	memcpy(buff, stream, sizeof(message_photo));
 	free(stream);
-	return 0;
+	return 1;
 }
 
 int recv_ring_udp(int sock_fd, item_r **peer_list){
