@@ -101,6 +101,8 @@ int main(int argc, char* argv[]){
 						printf("\x1B[31mKeyword list already full\x1B[0m\n");
 					}else if(success == -2){
 						printf("Photo with id = %u \x1B[31mdoesn't exist in the gallery\x1B[0m\n",photo_id);
+					}else if(success == -3){
+						printf("Photo with id = %u \x1B[31malready has keyword\x1B[0m: '%s'\n",photo_id, keyword);
 					}
 				}else{
 					usage("keyadd <photo_id> <keyword>, [photo_id > 0]");
