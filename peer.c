@@ -52,6 +52,7 @@ void delete_peer(message_photo *msg);
 int broadcastPeersAndNotify(char* message, int type, item* photo);
 void printPhotos();
 void printPeers();
+int checkGWState();
 
 void kill_server(int n) {
 	//Message to send to gateway letting it know that this peer terminated
@@ -99,14 +100,13 @@ int main(int argc, char* argv[]){
 	if(recv_ring_udp(sock_fd_gw, &peer_list) == -1){
 		if(errno == EAGAIN || errno == EWOULDBLOCK){
 			//timeout occured
+			errno = 0;
 			printf("[ABORTING] The Gateway is not online\n");
 			exit(1);
 		}
 		perror("Receiving from gateway");
 		exit(1);
 	}
-	//Resets the timeout for the default
-	reset_recv_timeout(sock_fd_gw);
 
 	//Puts root of peer_list referencing this peer's identification element
 	//(when the gateway adds this peer to the list, it adds it in the end)
@@ -175,8 +175,8 @@ void *connection(void *client_fd){
 	while(recv_and_unstream_photo(fd, msg) > 0){//CHANGED
 		switch(msg->type){
 			case 1:
-				add_photo(fd, msg, 0);
-				printPhotos();
+				if( add_photo(fd, msg, 0) != -1)
+					printPhotos();
 				break;
 			case 2:
 				add_keyword(fd, msg);
@@ -226,9 +226,26 @@ void *connection(void *client_fd){
 				delete_peer(msg);
 				printPeers();
 				break;
+			case -2:
+				close(fd);
+				printf("\x1B[33mGateway offline\x1B[0m\n");
+				printf("\x1B[31mShutting down\x1B[0m\n");
+				kill_server(0);
+				break;
 			default:
 				strcpy(msg->buffer,"Type of message undefined!");
 				printf("%s\n", msg->buffer);
+		}
+		int state = checkGWState();
+		if(state == -1)
+			break;
+		else if(state == 1){
+			printf("\x1B[33mTimeout occured\x1B[0m\n");
+			printf("\x1B[33mGateway offline\x1B[0m\n");
+			printf("\x1B[31mShutting down\x1B[0m\n");
+			broadcastPeersAndNotify("", -2, NULL);
+			close(fd);
+			kill_server(0);
 		}
 	}
 	printf("---------------------------------------------------\n");
@@ -260,14 +277,21 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	if(!isPeer){
 		//Asks Gateway for a new id
 		if(stream_and_send_gw(sock_fd_gw, &server_addr, "", PORT, 1) == -1)
-			exit(1);
+			return -1;
 
 		//Receives id from the gateway
 		socklen_t size_addr = sizeof(server_addr);
 		if(recvfrom(sock_fd_gw, &id, sizeof(uint32_t), 0, (struct sockaddr *) &server_addr, &size_addr) == -1){
-			perror("wtf: ");
-			exit(1);
+			//Error receiving id from gateway
+			id = 0;
 		}
+		//Sending photo id to client
+		if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
+			perror("Sending id: ");
+			return -1;
+		}
+		if(id == 0)
+			return -1;
 	}
 
 	//Saving photo characteristics in list
@@ -296,7 +320,7 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	char *bytestream = malloc(size*sizeof(char));
 	if(recv_all(fd, bytestream, size, 0) <= 0){
 		perror("Receiving: ");
-		return -1;
+		exit(1);
 	}
 
 	//Saving photo in disk
@@ -311,12 +335,6 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 	free(bytestream);
 
 	if(!isPeer){
-		//Sending photo id to client
-		if( send_all(fd, &id, sizeof(uint32_t), 0) == -1){
-			perror("Sending id: ");
-			return -1;
-		}
-
 		//Broadcast (Replication)
 		item *send = malloc(sizeof(item));
 		send->K = photo;
@@ -763,4 +781,17 @@ void printPeers(){
 	ring_print(peer_list);
 	pthread_mutex_unlock(&peer_lock);
 	printf("*****************************\x1B[0m\n");
+}
+
+int checkGWState(){
+	if(errno == EAGAIN || errno == EWOULDBLOCK){
+		//timeout occured
+		errno = 0;
+		return 1;
+	}else if(errno == EPIPE){
+		printf("Peer has disconnected\n");
+		errno = 0;
+		return -1;
+	}else
+		return 0;
 }
