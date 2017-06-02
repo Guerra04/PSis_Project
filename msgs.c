@@ -72,7 +72,7 @@ int stream_and_send_photo(int fd, const char *buffer, int type){
 	if( send_all(fd, stream, sizeof(message_photo), 0) == -1){
 		perror("Photo struct communication (send): ");
 		return -1;
-	}//TODO print seand_all
+	}
 	free(stream);
 	return 0;
 }
@@ -113,7 +113,7 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
-	//TODO mudar tudo isto para diferenciar close connection de erro
+
 	int read = recv_all(sock_fd, stream, sizeof(message_photo), 0);
 	if(read == -1){
 		//error receiving data

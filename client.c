@@ -82,12 +82,8 @@ int main(int argc, char* argv[]){
 			strcpy(arg,"");
 			//Get user input
 			fgets(line,LINE_S, stdin);
-			sscanf(line,"%s %[^\n]", command, arg);//TODO maybe scan for garbage
-			//TODO meter command connect para se um peer for abaixo dar para conectar a outro
-			//[HIDDEN] é só pra nós testarmos
-			if(strcmp(command,"test") == 0){
-				test();
-			}
+			sscanf(line,"%s %[^\n]", command, arg);
+
 			//Command to add a photo to the gallery
 			else if(strcmp(command,"add") == 0){
 				if(strcmp(arg,"") != 0){
@@ -123,7 +119,6 @@ int main(int argc, char* argv[]){
 				}
 			}
 			//Command to search for a photo
-			//TODO meter cores :)
 			else if(strcmp(command, "search") == 0){
 				if(strcmp(arg,"") != 0){
 					uint32_t *id_photos;
@@ -193,7 +188,7 @@ int main(int argc, char* argv[]){
 			}
 			//Commmand to quit
 			else if(strcmp(command, "quit") == 0){
-				printf("Bye bye!\n"); //TODO por frase bacana
+				printf("Closing connection.\n");
 				notify_server(0);
 			}
 			//None of the above commands
@@ -214,25 +209,6 @@ int main(int argc, char* argv[]){
 		printf("Trying to connect with other peer\n");
 	}
 	exit(0);
-}
-
-void test(){
-	/*************Communication**************/
-	char *stream = malloc(sizeof(message_photo));
-	message_photo *msg = malloc(sizeof(message_photo));
-	memset(msg->buffer, 0, MAX_SIZE);
-	fgets(msg->buffer,MAX_SIZE, stdin);
-	memcpy(stream, msg, sizeof(message_photo));
-	send(fd, stream, sizeof(message_photo), 0);
-	while(recv(fd, stream, sizeof(message_photo), 0) != EOF){
-		memcpy(msg, stream, sizeof(message_photo));
-		printf("%s\n", msg->buffer);
-		memset(msg->buffer, 0, MAX_SIZE);
-		fgets(msg->buffer,MAX_SIZE, stdin);
-		memcpy(stream, msg, sizeof(message_photo));
-		send(fd, msg, sizeof(message_photo), 0);
-	}
-	/********Communication [END]*****************/
 }
 
 void usage(char *message){
