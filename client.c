@@ -24,8 +24,22 @@ void usage(char*);
 void notify_server(int n);
 int checkPeerState();
 
+void launch_usage(){
+	printf("\x1B[31mUsage:\x1B[0m ./client <gateway_ip> <gateway_port>\n");
+	exit(0);
+}
+
 int main(int argc, char* argv[]){
 
+	char gateway_ip[20];
+	int gateway_port;
+
+	if(argc == 3){
+		strcpy(gateway_ip, argv[1]);
+		gateway_port = atoi(argv[2]);
+	}else{
+		launch_usage();
+	}
 	//Ctrl+C
 	handler = malloc(sizeof(handler));
     handler->sa_handler = &notify_server;
@@ -41,7 +55,7 @@ int main(int argc, char* argv[]){
 
 	while(1){
 	/*****************Connection to Peer*********************/
-		fd =  gallery_connect(KNOWN_IP, KNOWN_PORT_CLIENT);
+		fd =  gallery_connect(gateway_ip, gateway_port);
 
 		switch(fd){
 			case -1:

@@ -54,6 +54,11 @@ void printPhotos();
 void printPeers();
 int checkGWState();
 
+void usage(){
+	printf("\x1B[31mUsage:\x1B[0m ./peer <gateway_ip> <gateway_port>\n");
+	exit(0);
+}
+
 void kill_server(int n) {
 	//Message to send to gateway letting it know that this peer terminated
 	if(stream_and_send_gw(sock_fd_gw, &server_addr, peer_list->K.addr, PORT, -1) == -1)
@@ -78,6 +83,16 @@ int main(int argc, char* argv[]){
 	sigaction(SIGINT, handler, NULL);
 	/*******************/
 
+	char gateway_ip[20];
+	int gateway_port;
+
+	if(argc == 3){
+		strcpy(gateway_ip, argv[1]);
+		gateway_port = atoi(argv[2]);
+	}else{
+		usage();
+	}
+
 /*************Communication with Gateway*****************/
 	sock_fd_gw= socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -87,8 +102,8 @@ int main(int argc, char* argv[]){
 	}
 
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(KNOWN_PORT_PEER);
-	inet_aton(KNOWN_IP, &server_addr.sin_addr);
+	server_addr.sin_port = htons(gateway_port);
+	inet_aton(gateway_ip, &server_addr.sin_addr);
 	//Sending to gatway this peer's information
 	if(stream_and_send_gw(sock_fd_gw, &server_addr, "", PORT, 0) == -1)
 		exit(1);

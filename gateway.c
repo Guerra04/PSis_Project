@@ -21,6 +21,7 @@ item_r* peer_list;
 int sigint = 0;
 pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 uint32_t photo_id = 0;
+int peer_port, client_port;
 
 void kill_server(int n) {
 	sigint = 1;
@@ -31,9 +32,22 @@ void *connection_client(void *args);
 void broadcastPeers(char* message, int type, data_r *exc);
 void printPeers();
 
-int main(){
+
+void usage(){
+	printf("\x1B[31mUsage:\x1B[0m ./gateway <peer_port> <client_port>\n");
+	exit(0);
+}
+
+int main(int argc, char* argv[]){
 	//initializing peer list
 	peer_list = ring_init();
+
+	if(argc == 3){
+		peer_port = atoi(argv[1]);
+		client_port = atoi(argv[2]);
+	}else{
+		usage();
+	}
 
 	//Action of SIGINT
 	handler = malloc(sizeof(handler));
@@ -79,7 +93,7 @@ void *connection_peer(void *args){
 	}
 
 	local_addr.sin_family = AF_INET;
-	local_addr.sin_port= htons(KNOWN_PORT_PEER);
+	local_addr.sin_port= htons(peer_port);
 	local_addr.sin_addr.s_addr= INADDR_ANY;
 
 	int err = bind(sock_fd_peer, (struct sockaddr *)&local_addr, sizeof(local_addr));
@@ -161,7 +175,7 @@ void *connection_client(void *args){
 	}
 
 	local_addr.sin_family = AF_INET;
-	local_addr.sin_port= htons(KNOWN_PORT_CLIENT);
+	local_addr.sin_port= htons(client_port);
 	local_addr.sin_addr.s_addr= INADDR_ANY;
 
 	int err = bind(sock_fd_client, (struct sockaddr *)&local_addr, sizeof(local_addr));
