@@ -40,6 +40,7 @@ int gallery_connect(char * host, in_port_t port){
 	if( recv_and_unstream_gw(sock_fd_gw, &server_gw_addr, buff)==-1 ){
 		if(errno == EAGAIN || errno == EWOULDBLOCK){
 			//timeout occured
+			errno = 0;
 			return -1;
 		}
 		exit(1);
@@ -69,7 +70,7 @@ int gallery_connect(char * host, in_port_t port){
 		exit(-1);
 	}
 	//Sets timeout of socket, so client doesn't stay blocked if peer hangs
-	set_recv_timeout(sock_fd, 7, 0);
+	set_recv_timeout(sock_fd, 8, 0);
 
 	return sock_fd;
 }
@@ -98,16 +99,6 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	if(stream_and_send_photo(sock_peer, name_and_size, 1) == -1)
 		return 0;
 
-	//Send photo
-	char *buffer = (char *)malloc((file_size)*sizeof(char));
-	fread(buffer, file_size, 1, fp); //reads the whole file at once
-	fclose(fp);
-	if( send_all(sock_peer, buffer, file_size, 0) == -1 ){
-		//error sending data
-		perror("Communication: ");
-		return 0;
-	}
-
 	//Receive photo identifier from Peer
 	uint32_t photo_id = 0;
 	if( recv_all(sock_peer, &photo_id, sizeof(uint32_t), 0) == -1 ){
@@ -116,10 +107,18 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 		return 0;
 	}
 
-	//TODO Send photo id (peer side)
-	if(photo_id > 0)
+	if(photo_id > 0){
+		//Send photo
+		char *buffer = (char *)malloc((file_size)*sizeof(char));
+		fread(buffer, file_size, 1, fp); //reads the whole file at once
+		fclose(fp);
+		if( send_all(sock_peer, buffer, file_size, 0) == -1 ){
+			//error sending data
+			perror("Communication: ");
+			return 0;
+		}
 		return photo_id;
-	else
+	}else
 		return 0;
 
 }

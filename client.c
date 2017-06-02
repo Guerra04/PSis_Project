@@ -197,6 +197,7 @@ int main(int argc, char* argv[]){
 			}
 			// Sees if peer closed the connection
 			int state = checkPeerState();
+			//TODO ver state peer disconecta
 			if(state == -1)
 				break;
 			else if(state == 1){

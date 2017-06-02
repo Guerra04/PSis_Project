@@ -39,6 +39,7 @@ typedef struct message_gw{
 *	9 - add photo (replication)
 *  10 - add keyword (replication)
 *  11 - delete photo (replication)
+*  -2 - shutdown system (gateway offline)
 ********GW to peer************
 *  12 - delete peer in buffer
 ************************************/
