@@ -24,7 +24,7 @@ int send_all(int socket, const void *buffer, size_t length, int flags){
 		p += nbytes;
 		length -= nbytes;
 	}
-	return (nbytes <= 0) ? -1 : 0; //returns -1 in case of error
+	return (nbytes <= 0) ? -1 : nbytes; //returns -1 in case of error
 }
 
 int recv_all(int socket, void *buffer, size_t max_length, int flags){
@@ -113,7 +113,6 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
-
 	int read = recv_all(sock_fd, stream, sizeof(message_photo), 0);
 	if(read == -1){
 		//error receiving data
