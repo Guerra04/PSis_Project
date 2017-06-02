@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <stdint.h> //uint_'s
 #include "msgs.h"
-#include "gallery.h"
+#include "API.h"
 #define SIZE 100
 
 int main(){

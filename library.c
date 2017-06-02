@@ -10,7 +10,7 @@
 #include <stdint.h> //uint_'s
 #include <string.h> //memcpy
 #include <netinet/in.h>
-#include "gallery.h"
+#include "API.h"
 #include "msgs.h"
 
 #define DEBUG printf("aqui\n")

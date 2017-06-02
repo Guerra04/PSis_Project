@@ -1,4 +1,3 @@
-//#define SOCKET_NAME "best_socket"
 #define MAX_SIZE 100
 
 #include "ring_list.h"

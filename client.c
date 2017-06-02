@@ -10,7 +10,7 @@
 #include <stdint.h> //uint_'s
 #include <errno.h>
 #include "msgs.h"
-#include "gallery.h"
+#include "API.h"
 
 #define LINE_S 100
 #define COMMANDS " add, keyadd, search, delete, getname, download, quit" //Possible commands
