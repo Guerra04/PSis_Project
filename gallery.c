@@ -130,6 +130,7 @@ Returns:
 	- 0: communication error
 	- -1: keyword list full
 	- -2: photo doesn't exist
+	- -3: keyword already exists
 *******************************************************************************/
 int gallery_add_keyword(int peer_socket, uint32_t id_photo, char *keyword){
 	char message[MAX_SIZE];
