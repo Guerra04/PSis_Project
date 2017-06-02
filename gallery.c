@@ -116,7 +116,7 @@ uint32_t gallery_add_photo(int sock_peer, char *file){
 	name_and_size = strcat(file,temp);
 
 	//send name and size of photo
-	if(stream_and_send_photo(sock_peer, name_and_size, 1) == -1)
+	if(stream_and_send_photo(sock_peer, name_and_size, 1) == -1){
 		return 0;
 	}
 	//Receive photo identifier from Peer
