@@ -137,7 +137,7 @@ void *connection_peer(void *args){
 			//Sends peer_list to new_peer
 			if( send_ring_udp(sock_fd_peer, &peer_addr, peer_list) == -1)
 				exit(1);
-			pthread_mutex_unlock(&list_lock)
+			pthread_mutex_unlock(&list_lock);
 			//Prints peer list
 			printPeers();
 		}else if(buff->type == -1){

@@ -13,7 +13,7 @@
 #include "gallery.h"
 
 #define LINE_S 100
-#define COMMANDS " add, keyadd, search, delete, getname, download, quit"
+#define COMMANDS " add, keyadd, search, delete, getname, download, quit" //Possible commands
 #define DEBUG printf("aqui\n")
 
 int fd;
@@ -40,13 +40,12 @@ int main(int argc, char* argv[]){
 	}else{
 		launch_usage();
 	}
-	//Ctrl+C
+
+	//Action of SIGINT
 	handler = malloc(sizeof(handler));
     handler->sa_handler = &notify_server;
 	sigaction(SIGINT, handler, NULL);
-	/*struct sockaddr_in client_gw_addr;
-	int nbytes;
-	int err;*/
+
 	char line[LINE_S], command[10], arg[50];
 
 	/*Ignore SIGPIPE to prevent shutdown when writing to a closed socket*/
@@ -85,7 +84,7 @@ int main(int argc, char* argv[]){
 			sscanf(line,"%s %[^\n]", command, arg);
 
 			//Command to add a photo to the gallery
-			else if(strcmp(command,"add") == 0){
+			if(strcmp(command,"add") == 0){
 				if(strcmp(arg,"") != 0){
 					uint32_t photo_id = gallery_add_photo(fd, arg);
 					if(photo_id){
@@ -211,10 +210,17 @@ int main(int argc, char* argv[]){
 	exit(0);
 }
 
+/*******************************************************************************
+	Prints the usage for each command
+*******************************************************************************/
 void usage(char *message){
 	printf("\x1B[31mUsage: \x1B[0m%s\n", message);
 }
 
+/*******************************************************************************
+	Sends a message to the peer to notify it that the client is breaking the
+connection
+*******************************************************************************/
 void notify_server(int n) {
 	stream_and_send_photo(fd, "Client exiting", -1);
 
@@ -223,6 +229,9 @@ void notify_server(int n) {
 	exit(0);
 }
 
+/*******************************************************************************
+	//TODO comment this function
+*******************************************************************************/
 int checkPeerState(){
 	if(errno == EAGAIN || errno == EWOULDBLOCK){
 		//timeout occured
