@@ -117,7 +117,23 @@ void *connection_peer(void *args){
 			ring_append(&peer_list, K);
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d \x1B[32madded to list\x1B[0m\n", K.addr, K.port);
-			//Sends peer_list to new_peer
+			//Checks if peers are all online before sending peer_list to new peer
+			pthread_mutex_lock(&list_lock);
+			item_r * aux = peer_list;
+			while(aux->next != peer_list){
+				int g2p_fd = 0;
+				if(g2p_fd = isOnline(aux->K.addr, aux->K.port)){
+					close(g2p_fd);
+				}
+				aux = aux->next;
+				if(g2p_fd == 0){
+					ring_remove(&peer_list, aux->prev->K);
+					if(peer_list == NULL)
+						break;
+				}
+			}
+			pthread_mutex_unlock(&list_lock);
+			//Sends peer_list to new peer
 			if( send_ring_udp(sock_fd_peer, &peer_addr, peer_list) == -1)
 				exit(1);
 			//Prints peer list

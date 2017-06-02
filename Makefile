@@ -8,17 +8,17 @@ EXTRAFLAGS = -lpthread
 all: gateway peer client gallery.o receiver sender sender2 receiver2
 
 # EXECUTABLES TO TEST IMAGE TRANSFER
-receiver: peer.o msgs.o ring_list.o linked_list.o
-	$(LINKFLAGS) Receiver/peer $^ $(EXTRAFLAGS)
+receiver: peer
+	cp $< Receiver/	
 
-receiver2: peer.o msgs.o ring_list.o linked_list.o
-	$(LINKFLAGS) Receiver2/peer $^ $(EXTRAFLAGS)
+receiver2: peer
+	cp $< Receiver2/
 
-sender: client.o gallery.o msgs.o ring_list.o linked_list.o
-	$(LINKFLAGS) Sender/client $^ $(EXTRAFLAGS)
+sender: client
+	cp $< Sender/
 
-sender2: client.o gallery.o msgs.o ring_list.o linked_list.o
-	$(LINKFLAGS) Sender2/client $^ $(EXTRAFLAGS)
+sender2: client
+	cp $< Sender2/
 
 # THREE MAIN EXECUTABLES
 gateway: gateway.o msgs.o ring_list.o linked_list.o

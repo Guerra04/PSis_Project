@@ -113,7 +113,6 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
-	//TODO mudar tudo isto para diferenciar close connection de erro
 	int read = recv_all(sock_fd, stream, sizeof(message_photo), 0);
 	if(read == -1){
 		//error receiving data

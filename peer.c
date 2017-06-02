@@ -140,7 +140,7 @@ int main(int argc, char* argv[]){
 /*****************************SOCKET TCP*****************************/
 
 	sock_fd= socket(AF_INET, SOCK_STREAM, 0);
-	socklen_t size_addr;
+	socklen_t size_addr = sizeof(client_addr);
 
 	if (sock_fd == -1){
 		perror("socket: ");
@@ -165,6 +165,10 @@ int main(int argc, char* argv[]){
 	int client_fd;
 	while(1){
 		client_fd = accept(sock_fd, (struct sockaddr *) & client_addr, &size_addr);
+		if(client_fd == -1){
+			perror("Accept");
+			exit(1);
+		}
 		pthread_t thread_id;
 
 		if(pthread_create(&thread_id, NULL, connection, &client_fd) != 0){
