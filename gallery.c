@@ -44,9 +44,6 @@ int gallery_connect(char * host, in_port_t port){
 		}
 		exit(1);
 	}
-	//Resets the timeout for the default
-	reset_recv_timeout(sock_fd_gw);
-
 	close(sock_fd_gw);
 	if( buff->type == 1){
 		//no Peer is available
@@ -71,6 +68,8 @@ int gallery_connect(char * host, in_port_t port){
 		perror("Connecting to Peer: ");
 		exit(-1);
 	}
+	//Sets timeout of socket, so client doesn't stay blocked if peer hangs
+	set_recv_timeout(sock_fd, 7, 0);
 
 	return sock_fd;
 }

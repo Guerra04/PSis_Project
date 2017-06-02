@@ -122,7 +122,7 @@ int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 		return -1;
 	}else if(read == 0){
 		free(stream);
-		return -1;
+		return -0;
 	}
 	memcpy(buff, stream, sizeof(message_photo));
 	free(stream);

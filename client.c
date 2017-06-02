@@ -185,8 +185,12 @@ int main(int argc, char* argv[]){
 				printf("\x1B[31mInvalid command!\x1B[0m\n");
 			}
 			// Sees if peer closed the connection
-			if(checkPeerState())
+			int state = checkPeerState();
+			if(state == -1)
 				break;
+			else if(state == 1){
+				printf("\x1B[33mTimeout occured\x1B[0m\n");
+			}
 		}
 
 	/*********************MENU[END]**********************************/
@@ -228,10 +232,14 @@ void notify_server(int n) {
 }
 
 int checkPeerState(){
-	if(errno == EPIPE){
-		printf("Peer has disconnected\n");
+	if(errno == EAGAIN || errno == EWOULDBLOCK){
+		//timeout occured
 		errno = 0;
 		return 1;
+	}else if(errno == EPIPE){
+		printf("Peer has disconnected\n");
+		errno = 0;
+		return -1;
 	}else
 		return 0;
 }
