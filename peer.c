@@ -134,7 +134,6 @@ int main(int argc, char* argv[]){
 	if(notify_and_recv_photos(msg) == -1)
 		exit(1);
 	free(msg);
-	printPhotos();
 
 
 /*****************************SOCKET TCP*****************************/
@@ -189,24 +188,21 @@ int main(int argc, char* argv[]){
 void *connection(void *client_fd){
 	//Value copied becaus client_fd will be altered
 	int fd = *(int*)client_fd;
-	printf("---------------------------------------------------\n");
+
 	message_photo * msg = malloc(sizeof(message_photo));
 	while(recv_and_unstream_photo(fd, msg) > 0){
 		switch(msg->type){
 			case 1:
-				if( add_photo(fd, msg, 0) != -1)
-					printPhotos();
+				add_photo(fd, msg, 0);
 				break;
 			case 2:
 				add_keyword(fd, msg);
-				printPhotos();
 				break;
 			case 3:
 				search_photo(fd, msg);
 				break;
 			case 4:
 				delete_photo(fd, msg);
-				printPhotos();
 				break;
 			case 5:
 				send_photo_name(fd, msg);
@@ -222,28 +218,22 @@ void *connection(void *client_fd){
 				break;
 			case 7:
 				register_peer(msg);
-				printPeers();
 				break;
 			case 8:
 				register_peer(msg);
 				send_all_photos(fd, msg);
-				printPeers();
 				break;
 			case 9:
 				photo_replication(fd, msg);
-				printPhotos();
 				break;
 			case 10:
 				add_keyword(fd, msg);
-				printPhotos();
 				break;
 			case 11:
 				delete_photo(fd, msg);
-				printPhotos();
 				break;
 			case 12:
 				delete_peer(msg);
-				printPeers();
 				break;
 			case -2:
 				close(fd);
@@ -267,7 +257,6 @@ void *connection(void *client_fd){
 			kill_server(0);
 		}
 	}
-	printf("---------------------------------------------------\n");
 	free(msg);
 	close(fd);
 	pthread_exit(NULL);
@@ -362,7 +351,7 @@ int add_photo(int fd, message_photo *msg, int isPeer){
 
 		free(send);
 	}
-
+	printPhotos();
 	return id;
 }
 
@@ -390,6 +379,7 @@ void add_keyword(int fd, message_photo *msg){
 				strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
 				pthread_mutex_unlock(&photo_lock);
 				success = 1;
+				printPhotos();
 			}else{ //keyword already exists
 				success = -3;
 			}
@@ -478,6 +468,7 @@ void delete_photo(int fd, message_photo *msg){
 		char file_name[50];
 		sprintf(file_name,"%u", id);
 		unlink(file_name);
+		printPhotos();
 	}
 
 	//Just answers and broadcasts if instruction comes from a client
@@ -701,6 +692,7 @@ void register_peer(message_photo *msg){
 	pthread_mutex_lock(&peer_lock);
 	ring_append(&peer_list, K);
 	pthread_mutex_unlock(&peer_lock);
+	printPeers();
 	return;
 }
 
@@ -743,6 +735,7 @@ void delete_peer(message_photo *msg){
 	pthread_mutex_lock(&peer_lock);
 	ring_remove(&peer_list, K);
 	pthread_mutex_unlock(&peer_lock);
+	printPeers();
 	return;
 }
 

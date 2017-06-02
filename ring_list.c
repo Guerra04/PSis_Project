@@ -79,12 +79,10 @@ int ring_remove(item_r** root, data_r K){
 		}
 	}else{
 		if(aux_seg == (*root)){
-			printf("No data K found in remove\n");
 			return 0;
 		}
 		while(!equal_data_r(aux_seg->K, K)){
 			if(aux_seg->next == (*root)){
-				perror("No data_r K found in remove!\n");
 				return 0;
 			}
 			aux = aux->next;
@@ -109,7 +107,6 @@ item_r* ring_search(item_r* root, data_r K){
 	aux = root;
 	while(!equal_data_r(aux->K, K)){
 		if(aux->next == root){
-			printf("No data K found in search!\n");
 			return NULL;
 		}
 		aux = aux->next;

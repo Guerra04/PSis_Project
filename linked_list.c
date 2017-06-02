@@ -75,7 +75,6 @@ int list_remove(item** root, data K){
 	item *aux, *aux_seg;
 
 	if((*root) == NULL){
-		printf("Already an empty list\n");
 		return 0;
 	}
 
@@ -86,12 +85,10 @@ int list_remove(item** root, data K){
 		free(aux);
 	}else{
 		if(aux_seg == NULL){
-			printf("No data K found in remove\n");
 			return 0;
 		}
 		while(!equal_data(aux_seg->K, K)){
 			if(aux_seg->next == NULL){
-				printf("No data K found in remove\n");
 				return 0;
 			}
 			aux = aux->next;
@@ -108,21 +105,18 @@ item* list_search(item** root, data K){
 	item *aux;
 
 	if((*root) == NULL){
-		printf("Search cancelled, empty list, returning NULL\n");
 		return NULL;
 	}
 
 	aux = *root;
 	while(!equal_data(aux->K, K)){
 		if(aux->next == NULL){
-			printf("No data K found in search!\n");
 			return NULL;
 		}
 		aux = aux->next;
 	}
 
 	if(aux == NULL){
-		printf("Element not found, returning NULL\n");
 		return NULL;
 	}else{
 		return aux;
