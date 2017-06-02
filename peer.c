@@ -172,7 +172,7 @@ void *connection(void *client_fd){
 	int fd = *(int*)client_fd;
 	printf("---------------------------------------------------\n");
 	message_photo * msg = malloc(sizeof(message_photo));
-	while(recv_and_unstream_photo(fd, msg) <= 0){//CHANGED
+	while(recv_and_unstream_photo(fd, msg) > 0){//CHANGED
 		switch(msg->type){
 			case 1:
 				add_photo(fd, msg, 0);
