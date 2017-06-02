@@ -28,7 +28,7 @@ struct sockaddr_in server_addr;
 struct sigaction *handler;
 item *photo_list = NULL;
 item_r *peer_list = NULL;
-//TODO verificar se ta lock em todo o lado
+
 pthread_mutex_t photo_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t peer_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -187,7 +187,7 @@ void *connection(void *client_fd){
 	int fd = *(int*)client_fd;
 	printf("---------------------------------------------------\n");
 	message_photo * msg = malloc(sizeof(message_photo));
-	while(recv_and_unstream_photo(fd, msg) > 0){//CHANGED
+	while(recv_and_unstream_photo(fd, msg) > 0){
 		switch(msg->type){
 			case 1:
 				if( add_photo(fd, msg, 0) != -1)
@@ -645,6 +645,7 @@ int connect_peer(char * addr, in_port_t port){
  * 			-1 - error
  ****************************************************************************/
 int notify_and_recv_photos(message_photo *msg){
+	//No need for mutex because this function is called before creating threads
 	if(ring_count(peer_list) != 1){
 		//buffer that has this peer's address and port
 		char buffer[MAX_SIZE];

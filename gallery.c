@@ -272,7 +272,7 @@ int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
 		perror("Opening file to write");
 		exit(-1);
 	}
-	fwrite(photo, size, 1, fp);//TODO writes all at once?
+	fwrite(photo, size, 1, fp);
 	fclose(fp);
 	free(photo);
 

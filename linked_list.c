@@ -71,7 +71,7 @@ void list_append(item** root, item* other){
 }
 
 //Removes element with data K from the list
-int list_remove(item** root, data K){//CHANGED returns a "boolean"
+int list_remove(item** root, data K){
 	item *aux, *aux_seg;
 
 	if((*root) == NULL){

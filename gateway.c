@@ -118,8 +118,10 @@ void *connection_peer(void *args){
 			pthread_mutex_unlock(&list_lock);
 			printf("Server %s with port %d \x1B[32madded to list\x1B[0m\n", K.addr, K.port);
 			//Sends peer_list to new_peer
+			pthread_mutex_lock(&list_lock);
 			if( send_ring_udp(sock_fd_peer, &peer_addr, peer_list) == -1)
 				exit(1);
+			pthread_mutex_unlock(&list_lock)
 			//Prints peer list
 			printPeers();
 		}else if(buff->type == -1){
@@ -197,7 +199,7 @@ void *connection_client(void *args){
 				// round robin approach
 				pthread_mutex_lock(&list_lock);
 				peer_list = peer_list->next;
-				pthread_mutex_unlock(&list_lock);
+
 				// Checks if peer is still online, could have crashed
 				int fd_peer = 0;
 				if(!(fd_peer = isOnline(peer_list->K.addr, peer_list->K.port))){
@@ -215,6 +217,7 @@ void *connection_client(void *args){
 				buff->type = 0;
 				strcpy(buff->addr, peer_list->K.addr);
 				buff->port = peer_list->K.port;
+				pthread_mutex_unlock(&list_lock);
 			}else{
 				//There are no peers online
 				buff->type = 1;
