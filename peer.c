@@ -172,7 +172,7 @@ void *connection(void *client_fd){
 	int fd = *(int*)client_fd;
 	printf("---------------------------------------------------\n");
 	message_photo * msg = malloc(sizeof(message_photo));
-	while(recv_and_unstream_photo(fd, msg) <= 0){//CHANGED
+	while(recv_and_unstream_photo(fd, msg) > 0){//CHANGED
 		switch(msg->type){
 			case 1:
 				add_photo(fd, msg, 0);
@@ -348,10 +348,14 @@ void add_keyword(int fd, message_photo *msg){
 		success = -2;
 	}else{
 		if(aux->K.n_keywords < MAX_KEYWORDS){
-			pthread_mutex_lock(&photo_lock);
-			strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
-			pthread_mutex_unlock(&photo_lock);
-			success = 1;
+			if(search_keyword(aux, keyword) == 0){
+				pthread_mutex_lock(&photo_lock);
+				strcpy(aux->K.keyword[aux->K.n_keywords++],keyword);
+				pthread_mutex_unlock(&photo_lock);
+				success = 1;
+			}else{ //keyword already exists
+				success = -3;
+			}
 		}else{ //keyword list already full
 			success = -1;
 		}
