@@ -59,11 +59,11 @@ int main(int argc, char* argv[]){
 
 		switch(fd){
 			case -1:
-				printf("[ABORTING] Gateway cannot be accessed\n");
+				printf("\x1B[31m[ABORTING]\x1B[0m Gateway cannot be accessed\n");
 				exit(1);
 				break;
 			case 0:
-				printf("[ABORTING] There are no Peers availabe\n");
+				printf("\x1B[31m[ABORTING]\x1B[0m There are no Peers availabe\n");
 				exit(0);
 				break;
 			default:
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]){
 			}
 			// Sees if peer closed the connection
 			int state = checkPeerState();
-			//TODO ver state peer disconecta
+			printf("state = %d\n", state);
 			if(state == -1)
 				break;
 			else if(state == 1){

@@ -24,7 +24,7 @@ int send_all(int socket, const void *buffer, size_t length, int flags){
 		p += nbytes;
 		length -= nbytes;
 	}
-	return (nbytes <= 0) ? -1 : 0; //returns -1 in case of error
+	return (nbytes <= 0) ? -1 : nbytes; //returns -1 in case of error
 }
 
 int recv_all(int socket, void *buffer, size_t max_length, int flags){
@@ -69,10 +69,12 @@ int stream_and_send_photo(int fd, const char *buffer, int type){
 	buff.type = type;
 	char * stream = malloc(sizeof(message_photo));
 	memcpy(stream, &buff, sizeof(message_photo));
-	if( send_all(fd, stream, sizeof(message_photo), 0) == -1){
+	int n;
+	if( (n=send_all(fd, stream, sizeof(message_photo), 0)) == -1){
 		perror("Photo struct communication (send): ");
 		return -1;
-	}//TODO print seand_all
+	}
+	printf("nbytes = %d\n", n);//TODO print seand_all
 	free(stream);
 	return 0;
 }

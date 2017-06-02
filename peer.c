@@ -116,7 +116,7 @@ int main(int argc, char* argv[]){
 		if(errno == EAGAIN || errno == EWOULDBLOCK){
 			//timeout occured
 			errno = 0;
-			printf("[ABORTING] The Gateway is not online\n");
+			printf("\x1B[31m[ABORTING]\x1B[0m The Gateway is not online\n");
 			exit(1);
 		}
 		perror("Receiving from gateway");

@@ -122,7 +122,7 @@ void *connection_peer(void *args){
 			item_r * aux = peer_list;
 			while(aux->next != peer_list){
 				int g2p_fd = 0;
-				if(g2p_fd = isOnline(aux->K.addr, aux->K.port)){
+				if((g2p_fd = isOnline(aux->K.addr, aux->K.port))){
 					close(g2p_fd);
 				}
 				aux = aux->next;
