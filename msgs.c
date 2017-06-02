@@ -14,7 +14,9 @@
 
 #define DEBUG printf("aqui\n")
 
-
+/*******************************************************************************
+	Makes sure that all the buffer is sent
+*******************************************************************************/
 int send_all(int socket, const void *buffer, size_t length, int flags){
 	ssize_t nbytes;
 	const char *p = buffer;
@@ -27,6 +29,9 @@ int send_all(int socket, const void *buffer, size_t length, int flags){
 	return (nbytes <= 0) ? -1 : 0; //returns -1 in case of error
 }
 
+/*******************************************************************************
+	Makes sure that all the buffer is received
+*******************************************************************************/
 int recv_all(int socket, void *buffer, size_t max_length, int flags){
 	ssize_t nbytes;
 	int total_bytes = 0;
@@ -46,6 +51,9 @@ int recv_all(int socket, void *buffer, size_t max_length, int flags){
 
 }
 
+/*******************************************************************************
+	Transforms a structure of type 'message_gw' into a byte stream and sends it
+*******************************************************************************/
 int stream_and_send_gw(int fd,struct sockaddr_in* other_addr, char *addr, in_port_t port, int type){
 	message_gw buff;
 	strcpy(buff.addr, addr);
@@ -63,6 +71,9 @@ int stream_and_send_gw(int fd,struct sockaddr_in* other_addr, char *addr, in_por
 	return 0;
 }
 
+/*******************************************************************************
+	Transforms a structure of type 'message_photo' into a byte stream and sends it
+*******************************************************************************/
 int stream_and_send_photo(int fd, const char *buffer, int type){
 	message_photo buff;
 	strcpy(buff.buffer, buffer);
@@ -77,6 +88,9 @@ int stream_and_send_photo(int fd, const char *buffer, int type){
 	return 0;
 }
 
+/*******************************************************************************
+	Sets the timeout of the recv associated with the socket 'sock_fd'
+*******************************************************************************/
 void set_recv_timeout(int sock_fd, int secs, int usecs){
 	struct timeval tv;
 	tv.tv_sec = secs;
@@ -85,6 +99,9 @@ void set_recv_timeout(int sock_fd, int secs, int usecs){
 		 (const char*)&tv,sizeof(struct timeval));
 }
 
+/*******************************************************************************
+	Resets the timeout associated with the socket 'sock_fd'
+*******************************************************************************/
 void reset_recv_timeout(int sock_fd){
 	struct timeval tv;
 	tv.tv_sec = 0;
@@ -93,6 +110,10 @@ void reset_recv_timeout(int sock_fd){
 		 (const char*)&tv,sizeof(struct timeval));
 }
 
+/*******************************************************************************
+	Receives a byte stream and transforms it into a structure of type
+'message_gw'
+*******************************************************************************/
 int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw *buff){
 	socklen_t size_addr = sizeof(*other_addr);
 	char *stream = malloc(sizeof(message_gw));
@@ -111,6 +132,10 @@ int recv_and_unstream_gw(int sock_fd,struct sockaddr_in *other_addr, message_gw 
 	return 1;
 }
 
+/*******************************************************************************
+	Receives a byte stream and transforms it into a structure of type
+'message_photo'
+*******************************************************************************/
 int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	char *stream = malloc(sizeof(message_photo));
 
@@ -129,6 +154,10 @@ int recv_and_unstream_photo(int sock_fd, message_photo *buff){
 	return 1;
 }
 
+/*******************************************************************************
+	Receives a byte stream corresponding to a ring list and stores it into an
+array. Then inserts every position of said array into a new ring list.
+*******************************************************************************/
 int recv_ring_udp(int sock_fd, item_r **peer_list){
 	//First receives the size of the list
 	int size=0;
@@ -146,6 +175,7 @@ int recv_ring_udp(int sock_fd, item_r **peer_list){
 			return -1;
 		}
 
+		//Inserts into a list
 		memcpy(d_recv, stream, size*sizeof(data_r));
 		for(int i=0; i < size; i++){
 			ring_append(peer_list, d_recv[i]);
@@ -154,6 +184,9 @@ int recv_ring_udp(int sock_fd, item_r **peer_list){
 	return 0;
 }
 
+/*******************************************************************************
+	Stores a list into an array and sends it
+*******************************************************************************/
 int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list){
 	//Counts elements in peer_list
 	int size = ring_count(peer_list);
@@ -173,56 +206,6 @@ int send_ring_udp(int sock_fd, struct sockaddr_in* other_addr, item_r *peer_list
 		if(sendto(sock_fd, stream, size*sizeof(data_r), 0,
 			(const struct sockaddr *) other_addr, sizeof(*other_addr)) == -1){
 			perror("List send: ");
-			return -1;
-		}
-	}
-	return 0;
-}
-
-int recv_list_tcp(int sock_fd, item** list){
-	//First receives the size of the list
-	int size=0;
-	if(recv_all(sock_fd, &size, sizeof(int), 0) == -1){
-		perror("Receive size: ");
-		return -1;
-	}
-	//Then receives list, if it isn't empty
-	if(size!=0){
-		//Receive vectorized list
-		data d_recv[size];
-		char *stream = malloc(size*sizeof(data));
-		if(recv(sock_fd, stream, size*sizeof(data), 0) == -1){
-			perror("Receive list: ");
-			return -1;
-		}
-		memcpy(d_recv, stream, size*sizeof(data));
-		for(int i=0; i < size; i++){
-			list_insert(list, d_recv[i]);
-		}
-	}
-	return 0;
-}
-
-int send_list_tcp(int sock_fd, item *photo_list){
-
-	int size = list_count(photo_list);
-	if(send_all(sock_fd, &size, sizeof(int), 0) == -1){
-		perror("Send size: ");
-		return -1;
-	}
-
-	if(size!=0){
-		//Vectorizes list
-		data d_send[size];
-		for(int i=0; i < size; i++){
-			d_send[i] = photo_list->K;
-			photo_list = photo_list->next;
-		}
-		//Streams and sends peer_list
-		char *stream = malloc(size*sizeof(data));
-		memcpy(stream, d_send, size*sizeof(data));
-		if(send_all(sock_fd, d_send, size*sizeof(data), 0) == -1){
-			perror("Send list: ");
 			return -1;
 		}
 	}
@@ -261,7 +244,9 @@ int isOnline(char * host, in_port_t port){
 	return sock_fd;
 }
 
-//Dummy functions for linked list
+/*******************************************************************************
+	Fills a 'data' struture
+*******************************************************************************/
 data set_data(char* name, uint32_t id){
 	data K;
 	strcpy(K.name, name);
@@ -273,10 +258,16 @@ data set_data(char* name, uint32_t id){
 	return K;
 }
 
+/*******************************************************************************
+	Checks if 2 'data' structures are equal
+*******************************************************************************/
 int equal_data(data K1, data K2){
 		return K1.id == K2.id;
 }
 
+/*******************************************************************************
+	Prints a 'data' structure
+*******************************************************************************/
 void print_data(data K){
 	printf("photo: name = %s, id = %u, KW =", K.name, K.id);
 	for(int i = 0; i < K.n_keywords; i++){
@@ -285,7 +276,10 @@ void print_data(data K){
 	printf("\n");
 	return;
 }
-//Dummy functions for ring list
+
+/*******************************************************************************
+	Fills a 'data_r' struture
+*******************************************************************************/
 data_r set_data_r(char *addr, int port){
 	data_r K;
 	K.port = port;
@@ -293,6 +287,9 @@ data_r set_data_r(char *addr, int port){
 	return K;
 }
 
+/*******************************************************************************
+	Checks if 2 'data_r' structures are equal
+*******************************************************************************/
 int equal_data_r(data_r K1, data_r K2){
 		if(strcmp(K1.addr, K2.addr) == 0 && K1.port == K2.port)
 			return 1;
@@ -300,11 +297,14 @@ int equal_data_r(data_r K1, data_r K2){
 			return 0;
 }
 
+/*******************************************************************************
+	Prints a 'data_r' structure
+*******************************************************************************/
 void print_data_r(data_r K){
 	printf("addr = %s, port = %d\n", K.addr, K.port);
 	return;
 }
 
-item_r* sort_r(item_r* list1, item_r* list2){
+/*item_r* sort_r(item_r* list1, item_r* list2){
 	return NULL;
-}
+}*/

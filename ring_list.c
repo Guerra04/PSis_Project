@@ -168,60 +168,8 @@ item_r* rings_concatenate(item_r* list1, item_r* list2){
 		return list1;
 	}
 }
-//Recursively divide the list in half and sort the sublists
-//Needs to be called in a parallel section
-void ring_sort(item_r** root){
-	item_r* first_half;
-	item_r* second_half;
-	item_r* tmphead = *root;
 
-	/*Empty list or with only one element*/
-	if((tmphead == NULL) || (tmphead->next == NULL)){
-		return;
-	}
-
-	/*create the 2 sublists*/
-	ring_split(tmphead, &first_half, &second_half);
-
-	/*recursively sort the 2 sublists*/
-	ring_sort(&first_half);
-	ring_sort(&second_half);
-
-	/*sort and merge the sublists together*/
-	*root = sort_r(first_half, second_half);
-	//return;
-}
-
-/*Divides the list in half
-Uses 1 pointer that advances 2 elements (fast) and
-1 pointer that only advances 1(slow)*/
-void ring_split(item_r* head, item_r** first_half, item_r** second_half){
-	item_r* slow;
-	item_r* fast;
-
-	/*Empty list or with only one element*/
-	if((head == NULL) || (head->next == NULL)){
-		*first_half = head;
-		*second_half = NULL;
-	}else{
-		slow = head;
-		fast = head->next;
-
-		while(fast != NULL){
-			fast = fast->next;
-			if(fast != NULL){
-				slow = slow->next;
-				fast = fast->next;
-			}
-		}
-
-		/*slow is in before the element in the middle*/
-		*first_half = head;
-		*second_half = slow->next;
-		slow->next = NULL;
-	}
-}
-
+//Turns a ring list into a double linked list (unlink last and first elements)
 item_r* ring_dering(item_r *root){
 
 	if(root != NULL){
@@ -231,6 +179,7 @@ item_r* ring_dering(item_r *root){
 	return root;
 }
 
+//Counts the number of elements in the list
 int ring_count(item_r *root){
 	int count=0;
 	if(root==NULL)
